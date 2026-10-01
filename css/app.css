@@ -304,15 +304,7 @@ button:hover {
   cursor: default;
 }
 
-/* ---------- Ansichtsmodus (veröffentlichte Karte) ---------- */
-
-body.mindmap-viewing #nodes {
-  pointer-events: none;
-}
-
-body.mindmap-viewing #chat-toggle {
-  display: none;
-}
+/* ---------- Kopie-Banner (lokal bearbeitbare Kopie einer Galerie-Karte) ---------- */
 
 #view-banner {
   position: fixed;

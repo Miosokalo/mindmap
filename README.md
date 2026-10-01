@@ -63,7 +63,7 @@ Beim Besuch startet die Seite mit einem großen **Neue Mindmap erstellen** und d
 - **Löschen (nur Admin, serverseitig):** Karte entfernen mit
   `docker run --rm -v webstack_mindmap_data:/data alpine rm /data/maps/<id>.json` —
   die Galerie liest live, kein Neustart nötig.
-- Ansichtsmodus: veröffentlichte Karten werden read-only betrachtet (kein Schreiben in localStorage); **Als eigene Kopie übernehmen** lädt sie lokal.
+- Öffnen einer Galerie-Karte: sie wird als **lokal bearbeitbare Kopie** geöffnet (ersetzt die aktuelle Karte nach Rückfrage); die veröffentlichte Karte auf dem Server bleibt davon unberührt. Ein Kopie-Banner weist darauf hin; **Zurück zur Galerie** behält die Kopie als eigene Karte.
 
 ## Bereitstellen
 

@@ -628,7 +628,6 @@ document.getElementById("download-image").addEventListener("click", () => {
 window.addEventListener("keydown", (event) => {
   const editing = document.querySelector(".node-text[contenteditable='true']");
   if (editing) return;
-  if (window.MINDMAP_VIEWING) return;
   if (event.key === "Tab") {
     event.preventDefault();
     addChild(state.selectedId || "root");

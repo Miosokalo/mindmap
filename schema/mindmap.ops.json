@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Mindmap Chat-Ops",
+  "description": "Antwortformat des Chat-Assistenten (api/server.mjs → OpenRouter): ein Objekt { reply, ops }. ops werden von js/chat.js in dieser Reihenfolge ausgeführt.",
+  "type": "object",
+  "required": ["reply", "ops"],
+  "properties": {
+    "reply": {
+      "type": "string",
+      "description": "Kurze Rückmeldung auf Deutsch (max. 2 Sätze).",
+      "maxLength": 600
+    },
+    "ops": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["op", "parentId", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "add" },
+              "parentId": { "$ref": "#/$defs/nodeId" },
+              "text": { "type": "string", "maxLength": 200 },
+              "color": { "enum": ["gold", "green", "cyan", "blue", "orange"] }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "id", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "rename" },
+              "id": { "$ref": "#/$defs/nodeId" },
+              "text": { "type": "string", "maxLength": 200 }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "id"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "delete" },
+              "id": { "$ref": "#/$defs/nodeId", "not": { "const": "root" } }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "id", "newParentId"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "move" },
+              "id": { "$ref": "#/$defs/nodeId", "not": { "const": "root" } },
+              "newParentId": { "$ref": "#/$defs/nodeId" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "style"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "style" },
+              "style": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "color": { "enum": ["color", "mono"] },
+                  "line": { "enum": ["curve", "straight", "elbow"] },
+                  "nodes": { "enum": ["mixed", "filled", "outline", "text"] },
+                  "layout": { "enum": ["horizontal", "vertical", "around", "radial", "mixed"] }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "relayout" }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "nodeId": {
+      "type": "string",
+      "maxLength": 24,
+      "description": "Id eines vorhandenen Knotens der Karte. Neue Knoten bekommen ihre Id im Browser; das Modell vergibt nie eigene ids."
+    }
+  }
+}

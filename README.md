@@ -41,6 +41,18 @@ Mindmap.setDocument(doc);
 
 Eine neue Karte aus einem Baum erzeugt `buildTreeNodes(tree)` und danach `relayoutNodes(nodes, style, "root", textWidth)`.
 
+## Chat-Assistent (OpenRouter)
+
+Über **Chat** in der Kopfleiste öffnet sich ein Panel. Der Assistent ändert die Karte auf Zuruf, z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.
+
+- `js/chat.js` schickt den kompakten Baum (`id`, `parentId`, `text`, `order`, `color`, `dir`) und den Auftrag an `POST /api/chat` — gleicher Ursprung, ohne Koordinaten.
+- `api/server.mjs` (Zero-Dependency-Node) hält den OpenRouter-Key **nur serverseitig** und ruft `https://openrouter.ai/api/v1/chat/completions` auf.
+- Das Modell antwortet mit `{ reply, ops }`; `ops` folgen `schema/mindmap.ops.json` und werden über die vorhandenen Funktionen (`addChild`, `deleteNode`, `Mindmap.setStyle`, `relayoutNodes`) angewandt. Ungültige Ops werden übersprungen, die Karte bleibt immer valide.
+- Ohne Zugang: kleines/günstiges Modell mit strengem Rate-Limit (Caddy + Proxy). Mit Zugang (**Schlüssel** im Panel, Basic Auth): bessere Modelle.
+- `GET /api/health` zeigt Modellkonfiguration und ob der Key gesetzt ist.
+
+Serverseitige Umgebung (Webstack `.env`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`).
+
 ## Bereitstellen
 
 Die Dateien sind statisch und können so auf einen Webserver, zum Beispiel nginx auf Hetzner:

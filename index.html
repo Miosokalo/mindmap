@@ -14,6 +14,7 @@
         <button type="button" id="relayout" title="Unterpunkte des gewählten Knotens neu anordnen">Anordnen</button>
         <button type="button" id="delete-node">Löschen</button>
         <button type="button" id="download-image" title="Karte als PNG herunterladen">Bild</button>
+        <button type="button" id="chat-toggle" title="Assistenten öffnen">Chat</button>
       </div>
       <div class="styles">
         <label>
@@ -59,8 +60,21 @@
         <div id="nodes"></div>
       </div>
     </main>
+    <aside id="chat" hidden>
+      <div class="chat-head">
+        <span class="chat-title">Assistent</span>
+        <span id="chat-model" class="chat-model"></span>
+        <button type="button" id="chat-auth" title="Zugang für bessere Modelle">Schlüssel</button>
+      </div>
+      <div id="chat-messages"></div>
+      <form id="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="z. B. Füge unter der Wurzel einen Knoten ‚Wetter‘ an"></textarea>
+        <button type="submit" id="chat-send">Senden</button>
+      </form>
+    </aside>
     <script src="js/pflanzenschutz.js?v=20"></script>
     <script src="js/layout.js?v=20"></script>
     <script src="js/app.js?v=20"></script>
+    <script src="js/chat.js?v=21"></script>
   </body>
 </html>

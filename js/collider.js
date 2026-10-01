@@ -140,26 +140,6 @@
         for (const kid of kids.get(id) || []) sum += ctx.subtreeSize(kid.id);
         return sum;
       },
-      subtreeBounds(id) {
-        let l = Infinity;
-        let r = -Infinity;
-        let t = Infinity;
-        let b = -Infinity;
-        const visit = (nid) => {
-          const n = nodes[nid];
-          if (!n) return;
-          const w = (n.w || 48) / 2;
-          const h = (n.h || 22) / 2;
-          l = Math.min(l, n.x - w);
-          r = Math.max(r, n.x + w);
-          t = Math.min(t, n.y - h);
-          b = Math.max(b, n.y + h);
-          for (const kid of kids.get(nid) || []) visit(kid.id);
-        };
-        visit(id);
-        if (l === Infinity) return null;
-        return { l, r, t, b, cx: (l + r) / 2, cy: (t + b) / 2 };
-      },
       lowestCommonAncestor(a, b) {
         const chain = (n) => {
           const list = [n.id];
@@ -304,7 +284,18 @@
   // ---------- Fixes: jeweils den außenliegenden Teilbaum verschieben ----------
 
   function fixNodePair(ctx, a, b) {
-    const { nodes } = ctx;
+    const { box } = ctx;
+    // Bedarf aus dem konkreten Paar (nicht aus Teilbaum-Bounding-Boxen —
+    // die überlappen bei treppenförmigen Teilbäumen auch nach beliebigem
+    // Auseinanderschieben noch).
+    const A = box(a, 0);
+    const B = box(b, 0);
+    const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l); // > 0: horizontal überlappt
+    const oy = Math.min(A.b, B.b) - Math.max(A.t, B.t);
+    const needX = ox > 0 ? ox + NODE_PAD : 0;
+    const needY = oy > 0 ? oy + NODE_PAD : 0;
+    if (!needX && !needY) return; // im selben Pass schon getrennt
+
     const lca = ctx.lowestCommonAncestor(a, b);
     if (!lca) {
       fixLoosePair(ctx, a, b);
@@ -312,24 +303,18 @@
     }
     const sa = ctx.sideOf(a, lca);
     const sb = ctx.sideOf(b, lca);
-    // Seiten-Ausdehnungen: Teilbaumgrenzen oder Einzelkasten
-    const ba = sa.subtree ? ctx.subtreeBounds(sa.node.id) : ctx.box(sa.node, 0);
-    const bb = sb.subtree ? ctx.subtreeBounds(sb.node.id) : ctx.box(sb.node, 0);
-    if (!ba || !bb) return;
-    const ox = Math.min(ba.r, bb.r) - Math.max(ba.l, bb.l); // > 0: horizontal überlappt
-    const oy = Math.min(ba.b, bb.b) - Math.max(ba.t, bb.t);
-    const needX = ox > 0 ? ox + NODE_PAD : 0;
-    const needY = oy > 0 ? oy + NODE_PAD : 0;
-    if (!needX && !needY) return; // im selben Pass schon getrennt
-
     if (!sa.subtree && !sb.subtree) {
       // zwei Einzelkästen (z. B. Knoten und sein LCA): der äußere wandert
       fixLoosePair(ctx, a, b);
       return;
     }
+
+    // Richtung aus den Fork-Ankern (nicht aus dem konkreten Paar): alle
+    // Paare zwischen denselben zwei Gegenteilbäumen schieben dann in
+    // dieselbe Richtung — kein Ping-Pong.
     const horizontal = needX && (!needY || needX <= needY);
     if (horizontal) {
-      const sign = Math.sign(ba.cx - bb.cx) || 1;
+      const sign = Math.sign(sa.node.x - sb.node.x) || Math.sign(a.x - b.x) || 1;
       if (sa.subtree && sb.subtree) {
         // symmetrisch auseinander: jeder trägt die Hälfte
         ctx.shiftTree(sa.node.id, (sign * needX) / 2, 0);
@@ -340,7 +325,7 @@
         ctx.shiftTree(sb.node.id, -sign * needX, 0);
       }
     } else {
-      const sign = Math.sign(ba.cy - bb.cy) || 1;
+      const sign = Math.sign(sa.node.y - sb.node.y) || Math.sign(a.y - b.y) || 1;
       if (sa.subtree && sb.subtree) {
         ctx.shiftTree(sa.node.id, 0, (sign * needY) / 2);
         ctx.shiftTree(sb.node.id, 0, (-sign * needY) / 2);

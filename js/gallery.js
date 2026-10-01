@@ -178,14 +178,33 @@
   function exitView() {
     setViewing(false);
     if (ownMapBackup !== null) {
-      localStorage.setItem(LS_KEY, ownMapBackup);
+      const backup = ownMapBackup;
       ownMapBackup = null;
+      localStorage.setItem(LS_KEY, backup);
       try {
-        Mindmap.setDocument(JSON.parse(localStorage.getItem(LS_KEY)));
+        const restored = JSON.parse(backup);
+        if (restored && restored.nodes && restored.nodes.root) {
+          // Kompletten Zustand wiederherstellen — inkl. Kamera (panX/panY/zoom),
+          // Auswahl und centered-Flag, nicht nur Nodes/Style.
+          state.nodes = JSON.parse(JSON.stringify(restored.nodes));
+          state.style = withStyle({ style: restored.style || {} }).style;
+          state.panX = Number.isFinite(restored.panX) ? restored.panX : state.panX;
+          state.panY = Number.isFinite(restored.panY) ? restored.panY : state.panY;
+          state.zoom = Number.isFinite(restored.zoom) ? restored.zoom : state.zoom;
+          state.selectedId = restored.selectedId || "root";
+          state.centered = !!restored.centered;
+          state.mapVersion = MAP_VERSION;
+          syncStyleControls();
+          saveState();
+          render();
+          showEditor();
+        } else {
+          showEditor();
+        }
       } catch {
         /* Backup unverständlich — Karte im Speicher bleibt */
+        showEditor();
       }
-      showEditor();
     } else {
       showStart();
     }

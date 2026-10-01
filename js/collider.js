@@ -285,15 +285,17 @@
 
   function fixNodePair(ctx, a, b) {
     const { box } = ctx;
-    // Bedarf aus dem konkreten Paar (nicht aus Teilbaum-Bounding-Boxen —
-    // die überlappen bei treppenförmigen Teilbäumen auch nach beliebigem
-    // Auseinanderschieben noch).
-    const A = box(a, 0);
-    const B = box(b, 0);
-    const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l); // > 0: horizontal überlappt
+    // Bedarf aus dem konkreten Paar, mit denselben gepolsterten Boxen wie
+    // beim Scan (Verstoß = Abstand < 2×NODE_PAD), sonst bleiben „zu nahe“-
+    // Paare für immer gemeldet, ohne je gefixt zu werden. Teilbaum-
+    // Bounding-Boxen wären zu grob: die überlappen bei treppenförmigen
+    // Teilbäumen auch nach beliebigem Auseinanderschieben noch.
+    const A = box(a, NODE_PAD);
+    const B = box(b, NODE_PAD);
+    const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l); // > 0: zu nah/überlappt
     const oy = Math.min(A.b, B.b) - Math.max(A.t, B.t);
-    const needX = ox > 0 ? ox + NODE_PAD : 0;
-    const needY = oy > 0 ? oy + NODE_PAD : 0;
+    const needX = ox > 0 ? ox + 1 : 0;
+    const needY = oy > 0 ? oy + 1 : 0;
     if (!needX && !needY) return; // im selben Pass schon getrennt
 
     const lca = ctx.lowestCommonAncestor(a, b);
@@ -341,12 +343,12 @@
   // oder zwei Einzelkästen: der „außenliegende“ Teilbaum wandert ganz.
   function fixLoosePair(ctx, a, b) {
     const { nodes, box } = ctx;
-    const A = box(a, 0);
-    const B = box(b, 0);
+    const A = box(a, NODE_PAD);
+    const B = box(b, NODE_PAD);
     const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l);
     const oy = Math.min(A.b, B.b) - Math.max(A.t, B.t);
-    const needX = ox > 0 ? ox + NODE_PAD : 0;
-    const needY = oy > 0 ? oy + NODE_PAD : 0;
+    const needX = ox > 0 ? ox + 1 : 0;
+    const needY = oy > 0 ? oy + 1 : 0;
     if (!needX && !needY) return;
     const p = ctx.pickMover(a, b);
     const q = p === a ? b : a;

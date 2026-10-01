@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mindmap</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">Mindmap</div>
+      <div class="actions">
+        <button type="button" id="add-child">Kind</button>
+        <button type="button" id="delete-node">Löschen</button>
+      </div>
+      <p class="hint">Tab Kind · Doppelklick Text · Ziehen verschiebt · Rad zoomt</p>
+    </header>
+    <main id="viewport">
+      <div id="world">
+        <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="nodes"></div>
+      </div>
+    </main>
+    <script src="js/app.js"></script>
+  </body>
+</html>

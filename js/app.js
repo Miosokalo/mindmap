@@ -33,6 +33,16 @@ function withStyle(parsed) {
   return parsed;
 }
 
+// Automatisches Anordnen + ultimativer Anti-Collider (js/collider.js):
+// garantiert, dass danach keine Knoten überlappen, keine Kante durch einen
+// fremden Knoten läuft und keine Kanten sich kreuzen.
+function relayoutCollided(nodes, style, anchorId) {
+  const anchor = nodes[anchorId] || nodes.root;
+  if (!anchor) return;
+  relayoutNodes(nodes, style, anchorId, textWidth);
+  if (typeof antiCollide === "function") antiCollide(nodes, style && style.line);
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -43,7 +53,7 @@ function loadState() {
     if (styled.mapVersion !== MAP_VERSION) {
       styled.mapVersion = MAP_VERSION;
       styled.centered = false;
-      relayoutNodes(styled.nodes, styled.style, "root", textWidth);
+      relayoutCollided(styled.nodes, styled.style, "root");
       return styled;
     }
     return styled;
@@ -55,7 +65,7 @@ function loadState() {
 function freshState() {
   const style = defaultStyle();
   const nodes = buildTreeNodes(PFLANZENSCHUTZ);
-  relayoutNodes(nodes, style, "root", textWidth);
+  relayoutCollided(nodes, style, "root");
   return {
     panX: 0,
     panY: 0,
@@ -178,9 +188,11 @@ function nodeLook(node, leaf) {
 }
 
 function nodeBox(node) {
-  const el = nodesEl.querySelector(`[data-id="${node.id}"]`);
-  const w = el ? el.offsetWidth : node.w || 48;
-  const h = el ? el.offsetHeight : 22;
+  // Rein aus den Layout-Maßen (node.w/node.h enthalten bereits Padding+Rahmen
+  // über textWidth) — deterministisch, auch vor dem ersten Rendern und damit
+  // identisch zur Sicht des Anti-Colliders.
+  const w = node.w || 48;
+  const h = node.h || 22;
   return {
     left: node.x - w / 2,
     right: node.x + w / 2,
@@ -306,6 +318,24 @@ function gutterPath(parent, child, kind, spine) {
   return `M ${start.x} ${start.y} C ${start.x} ${start.y + sign * pull}, ${start.x} ${end.y}, ${end.x} ${end.y}`;
 }
 
+// Kante genau so berechnen, wie sie gezeichnet wird — eine einzige Quelle
+// für renderEdges UND den Anti-Collider (js/collider.js).
+function computeEdgePath(nodes, node, parent, lineKind) {
+  const face = rayDir(node);
+  if (node.gutter) {
+    return gutterPath(nodeBox(parent), nodeBox(node), lineKind, node.spine);
+  }
+  if (face) {
+    const start = facePoint(nodeBox(parent), face, node);
+    const end = facePoint(nodeBox(node), OPPOSITE_DIR[face], parent);
+    return edgePathFace(start, end, lineKind, face);
+  }
+  const angle = nodeAngle(node, parent);
+  const start = borderPoint(nodeBox(parent), angle);
+  const end = borderPoint(nodeBox(node), angle + Math.PI);
+  return edgePath(start, end, lineKind, angle);
+}
+
 function renderEdges() {
   const points = nodeList().map((node) => ({ x: node.x, y: node.y }));
   if (points.length === 0) {
@@ -340,22 +370,7 @@ function renderEdges() {
     if (!node.parentId) continue;
     const parent = state.nodes[node.parentId];
     if (!parent) continue;
-    const face = rayDir(node);
-    let start;
-    let end;
-    let pathData;
-    if (node.gutter) {
-      pathData = gutterPath(nodeBox(parent), nodeBox(node), state.style.line, node.spine);
-    } else if (face) {
-      start = facePoint(nodeBox(parent), face, node);
-      end = facePoint(nodeBox(node), OPPOSITE_DIR[face], parent);
-      pathData = edgePathFace(start, end, state.style.line, face);
-    } else {
-      const angle = nodeAngle(node, parent);
-      start = borderPoint(nodeBox(parent), angle);
-      end = borderPoint(nodeBox(node), angle + Math.PI);
-      pathData = edgePath(start, end, state.style.line, angle);
-    }
+    const pathData = computeEdgePath(state.nodes, node, parent, state.style.line);
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", pathData);
     const palette = COLORS[node.color] || COLORS.root;
@@ -394,7 +409,7 @@ function addChild(parentId) {
     h: 18,
   };
   state.selectedId = id;
-  relayoutNodes(state.nodes, state.style, parentId, textWidth);
+  relayoutCollided(state.nodes, state.style, parentId);
   saveState();
   render();
 }
@@ -570,7 +585,7 @@ function applyArrangement(nodeId, flow) {
     node.flow = flow;
   }
   clearDescendantFlows(node.id);
-  relayoutNodes(state.nodes, state.style, node.id, textWidth);
+  relayoutCollided(state.nodes, state.style, node.id);
   if (!node.parentId) {
     state.centered = false;
     centerIfNeeded();
@@ -598,6 +613,9 @@ for (const [id, key] of [
   control.value = state.style[key];
   control.addEventListener("change", () => {
     state.style[key] = control.value;
+    // Linienstil ändert die Kantengeometrie — Anti-Collider nachschärfen,
+    // damit nichts überkreuzt bleibt.
+    if (key === "line" && typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
     saveState();
     render();
   });
@@ -790,7 +808,7 @@ const Mindmap = {
     return mindmapDocument();
   },
   relayout(nodeId) {
-    relayoutNodes(state.nodes, state.style, nodeId || state.selectedId || "root", textWidth);
+    relayoutCollided(state.nodes, state.style, nodeId || state.selectedId || "root");
     saveState();
     render();
     return mindmapDocument();
@@ -803,7 +821,7 @@ const Mindmap = {
       const layout = next.layout === "mixed" ? "around" : next.layout;
       state.nodes.root.flow = layout;
       clearDescendantFlows("root");
-      relayoutNodes(state.nodes, state.style, "root", textWidth);
+      relayoutCollided(state.nodes, state.style, "root");
       state.centered = false;
       centerIfNeeded();
     }

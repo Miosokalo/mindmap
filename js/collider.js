@@ -126,7 +126,7 @@
       box(n, pad) {
         const w = (n.w || 48) / 2 + (pad || 0);
         const h = (n.h || 22) / 2 + (pad || 0);
-        return { l: n.x - w, r: n.x + w, t: n.y - h, b: n.y + h };
+        return { l: n.x - w, r: n.x + w, t: n.y - h, b: n.y + h, cx: n.x, cy: n.y };
       },
       shiftTree(id, dx, dy) {
         const n = nodes[id];
@@ -139,6 +139,54 @@
         let sum = 1;
         for (const kid of kids.get(id) || []) sum += ctx.subtreeSize(kid.id);
         return sum;
+      },
+      subtreeBounds(id) {
+        let l = Infinity;
+        let r = -Infinity;
+        let t = Infinity;
+        let b = -Infinity;
+        const visit = (nid) => {
+          const n = nodes[nid];
+          if (!n) return;
+          const w = (n.w || 48) / 2;
+          const h = (n.h || 22) / 2;
+          l = Math.min(l, n.x - w);
+          r = Math.max(r, n.x + w);
+          t = Math.min(t, n.y - h);
+          b = Math.max(b, n.y + h);
+          for (const kid of kids.get(nid) || []) visit(kid.id);
+        };
+        visit(id);
+        if (l === Infinity) return null;
+        return { l, r, t, b, cx: (l + r) / 2, cy: (t + b) / 2 };
+      },
+      lowestCommonAncestor(a, b) {
+        const chain = (n) => {
+          const list = [n.id];
+          let cur = n;
+          let guard = 0;
+          while (cur && cur.parentId && nodes[cur.parentId] && guard < 10000) {
+            list.push(cur.parentId);
+            cur = nodes[cur.parentId];
+            guard += 1;
+          }
+          return list;
+        };
+        const setB = new Set(chain(b));
+        for (const id of chain(a)) if (setB.has(id)) return nodes[id];
+        return null;
+      },
+      // „Seite“ von node am Vorfahren lca: entweder der eigene Kasten (falls
+      // node === lca) oder der Teilbaum des lca-Kindes auf nodes Pfad.
+      sideOf(node, lca) {
+        if (node.id === lca.id) return { node, subtree: false };
+        let n = node;
+        let guard = 0;
+        while (n.parentId && nodes[n.parentId] && n.parentId !== lca.id && guard < 10000) {
+          n = nodes[n.parentId];
+          guard += 1;
+        }
+        return { node: n, subtree: true };
       },
       isAncestor(ancId, id) {
         let n = nodes[id];
@@ -256,14 +304,65 @@
   // ---------- Fixes: jeweils den außenliegenden Teilbaum verschieben ----------
 
   function fixNodePair(ctx, a, b) {
-    const { nodes, box } = ctx;
-    const A = box(a, 0);
-    const B = box(b, 0);
-    const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l); // > 0: horizontal überlappt
-    const oy = Math.min(A.b, B.b) - Math.max(A.t, B.t);
+    const { nodes } = ctx;
+    const lca = ctx.lowestCommonAncestor(a, b);
+    if (!lca) {
+      fixLoosePair(ctx, a, b);
+      return;
+    }
+    const sa = ctx.sideOf(a, lca);
+    const sb = ctx.sideOf(b, lca);
+    // Seiten-Ausdehnungen: Teilbaumgrenzen oder Einzelkasten
+    const ba = sa.subtree ? ctx.subtreeBounds(sa.node.id) : ctx.box(sa.node, 0);
+    const bb = sb.subtree ? ctx.subtreeBounds(sb.node.id) : ctx.box(sb.node, 0);
+    if (!ba || !bb) return;
+    const ox = Math.min(ba.r, bb.r) - Math.max(ba.l, bb.l); // > 0: horizontal überlappt
+    const oy = Math.min(ba.b, bb.b) - Math.max(ba.t, bb.t);
     const needX = ox > 0 ? ox + NODE_PAD : 0;
     const needY = oy > 0 ? oy + NODE_PAD : 0;
     if (!needX && !needY) return; // im selben Pass schon getrennt
+
+    if (!sa.subtree && !sb.subtree) {
+      // zwei Einzelkästen (z. B. Knoten und sein LCA): der äußere wandert
+      fixLoosePair(ctx, a, b);
+      return;
+    }
+    const horizontal = needX && (!needY || needX <= needY);
+    if (horizontal) {
+      const sign = Math.sign(ba.cx - bb.cx) || 1;
+      if (sa.subtree && sb.subtree) {
+        // symmetrisch auseinander: jeder trägt die Hälfte
+        ctx.shiftTree(sa.node.id, (sign * needX) / 2, 0);
+        ctx.shiftTree(sb.node.id, (-sign * needX) / 2, 0);
+      } else if (sa.subtree) {
+        ctx.shiftTree(sa.node.id, sign * needX, 0);
+      } else {
+        ctx.shiftTree(sb.node.id, -sign * needX, 0);
+      }
+    } else {
+      const sign = Math.sign(ba.cy - bb.cy) || 1;
+      if (sa.subtree && sb.subtree) {
+        ctx.shiftTree(sa.node.id, 0, (sign * needY) / 2);
+        ctx.shiftTree(sb.node.id, 0, (-sign * needY) / 2);
+      } else if (sa.subtree) {
+        ctx.shiftTree(sa.node.id, 0, sign * needY);
+      } else {
+        ctx.shiftTree(sb.node.id, 0, -sign * needY);
+      }
+    }
+  }
+
+  // Paarweise Trennung ohne gemeinsamen Vorfahren (defekte/waisen Knoten)
+  // oder zwei Einzelkästen: der „außenliegende“ Teilbaum wandert ganz.
+  function fixLoosePair(ctx, a, b) {
+    const { nodes, box } = ctx;
+    const A = box(a, 0);
+    const B = box(b, 0);
+    const ox = Math.min(A.r, B.r) - Math.max(A.l, B.l);
+    const oy = Math.min(A.b, B.b) - Math.max(A.t, B.t);
+    const needX = ox > 0 ? ox + NODE_PAD : 0;
+    const needY = oy > 0 ? oy + NODE_PAD : 0;
+    if (!needX && !needY) return;
     const p = ctx.pickMover(a, b);
     const q = p === a ? b : a;
     const root = nodes.root;

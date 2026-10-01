@@ -34,7 +34,8 @@ body {
 .bar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   padding: 12px 18px;
   border-bottom: 1px solid rgba(28, 25, 23, 0.08);
   background: rgba(255, 253, 248, 0.9);
@@ -46,9 +47,33 @@ body {
   letter-spacing: 0.02em;
 }
 
-.actions {
+.actions,
+.styles {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.styles label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.styles label[hidden] {
+  display: none;
+}
+
+.styles select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid rgba(28, 25, 23, 0.14);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
 }
 
 button {
@@ -113,24 +138,29 @@ button:hover {
 
 .node {
   position: absolute;
-  min-width: 96px;
-  max-width: 240px;
+  width: max-content;
+  max-width: none;
   transform: translate(-50%, -50%);
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--panel);
-  border: 1px solid rgba(28, 25, 23, 0.1);
-  box-shadow: var(--shadow);
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: grab;
   user-select: none;
   text-align: center;
-  line-height: 1.35;
+  line-height: 1.25;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.node.root {
-  background: var(--ink);
-  color: #fafaf9;
-  border-color: transparent;
+.node.branch {
+  font-weight: 600;
+}
+
+.node.leaf {
+  padding: 1px 2px;
+  font-weight: 500;
 }
 
 .node.selected {
@@ -145,6 +175,5 @@ button:hover {
 
 .node-text {
   outline: none;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }

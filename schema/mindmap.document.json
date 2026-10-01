@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mindmap.local/schema/mindmap.document.json",
+  "title": "Mindmap document",
+  "description": "Persistentes Dokument der Mindmap. Agents lesen und schreiben es über Mindmap.getDocument() und Mindmap.setDocument(). Positionen sind Weltkoordinaten, die Mitte des Knotens. dir ist die Wuchsrichtung vom Elternknoten aus: n oben, e rechts, s unten, w links.",
+  "type": "object",
+  "required": ["version", "style", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "style": { "$ref": "#/$defs/style" },
+    "camera": { "$ref": "#/$defs/camera" },
+    "nodes": {
+      "type": "object",
+      "required": ["root"],
+      "additionalProperties": { "$ref": "#/$defs/node" },
+      "properties": {
+        "root": { "$ref": "#/$defs/node" }
+      }
+    }
+  },
+  "$defs": {
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "color": { "enum": ["color", "mono"] },
+        "line": { "enum": ["curve", "straight", "elbow"] },
+        "nodes": { "enum": ["mixed", "filled", "outline", "text"] },
+        "layout": {
+          "enum": ["around", "horizontal", "vertical", "radial", "mixed"],
+          "description": "Fallback für den Ursprung, wenn root.flow fehlt. around: vier Seiten. horizontal: links/rechts. vertical: oben/unten. radial: Striche gleichmäßig im freien Bogen. mixed: wie around."
+        }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "panX": { "type": "number" },
+        "panY": { "type": "number" },
+        "zoom": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "parentId": { "type": ["string", "null"] },
+        "text": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" },
+        "order": { "type": "integer" },
+        "dir": { "enum": ["n", "e", "s", "w", null] },
+        "ray": {
+          "type": "number",
+          "description": "Richtung, in der Unterpunkte bei continue weiterwachsen. 0 ist rechts."
+        },
+        "angle": {
+          "type": "number",
+          "description": "Richtung vom Elternknoten in Radiant. 0 ist rechts, gegen den Uhrzeigersinn, oben ist positiv."
+        },
+        "wedge": {
+          "type": "number",
+          "description": "Freier Winkel in Radiant, den die Unterpunkte bei radial nicht verlassen."
+        },
+        "flow": {
+          "enum": ["continue", "horizontal", "vertical", "around", "radial", null],
+          "description": "Anordnung der Unterpunkte dieses Knotens. continue folgt der eingehenden Richtung. Fehlt das Feld, gilt beim Ursprung style.layout und sonst continue."
+        },
+        "prefer": {
+          "enum": ["n", "e", "s", "w", null],
+          "description": "Bevorzugte Seite, wenn style.layout horizontal ist."
+        },
+        "color": { "type": "string" },
+        "side": {
+          "description": "Alter Layout-Hinweis, 1 rechts und -1 links. Neue Dokumente nutzen prefer."
+        }
+      }
+    }
+  }
+}

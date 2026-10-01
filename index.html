@@ -11,9 +11,47 @@
       <div class="brand">Mindmap</div>
       <div class="actions">
         <button type="button" id="add-child">Kind</button>
+        <button type="button" id="relayout" title="Unterpunkte des gewählten Knotens neu anordnen">Anordnen</button>
         <button type="button" id="delete-node">Löschen</button>
+        <button type="button" id="download-image" title="Karte als PNG herunterladen">Bild</button>
       </div>
-      <p class="hint">Tab Kind · Doppelklick Text · Ziehen verschiebt · Rad zoomt</p>
+      <div class="styles">
+        <label>
+          Farbe
+          <select id="style-color">
+            <option value="color">Bunt</option>
+            <option value="mono">Schwarz-Weiß</option>
+          </select>
+        </label>
+        <label>
+          Linien
+          <select id="style-line">
+            <option value="curve">Geschwungen</option>
+            <option value="straight">Gerade</option>
+            <option value="elbow">Abgewinkelt</option>
+          </select>
+        </label>
+        <label title="Gilt nur für den gewählten Knoten. Für die ganze Karte zuerst den Ursprung wählen.">
+          Anordnung
+          <select id="style-layout">
+            <option value="continue">Weiter</option>
+            <option value="around">Rundherum</option>
+            <option value="horizontal">Links–Rechts</option>
+            <option value="vertical">Oben–Unten</option>
+            <option value="radial">Gleichmäßig</option>
+          </select>
+        </label>
+        <label>
+          Knoten
+          <select id="style-nodes">
+            <option value="mixed">Gemischt</option>
+            <option value="filled">Fläche</option>
+            <option value="outline">Rahmen</option>
+            <option value="text">Nur Text</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">Anordnung gilt für den gewählten Knoten · Ursprung ordnet die ganze Karte · Tab Kind</p>
     </header>
     <main id="viewport">
       <div id="world">
@@ -21,6 +59,8 @@
         <div id="nodes"></div>
       </div>
     </main>
-    <script src="js/app.js"></script>
+    <script src="js/pflanzenschutz.js?v=20"></script>
+    <script src="js/layout.js?v=20"></script>
+    <script src="js/app.js?v=20"></script>
   </body>
 </html>

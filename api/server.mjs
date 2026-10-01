@@ -1,14 +1,24 @@
 /**
- * Mindmap-Chat-Proxy (Zero-Dependency, node:http).
- * POST /api/chat  { document, instruction, history? } -> { reply, ops, model, authed }
- * GET  /api/health -> { ok, modelPublic, modelAuth, keyConfigured }
+ * Mindmap-API (Zero-Dependency, node:http).
  *
- * OpenRouter-Key liegt nur hier (ENV), nie im Frontend.
- * Ohne Basic Auth: kleines/günstiges Modell + strenges Rate-Limit.
- * Mit Basic Auth (MINDMAP_CHAT_AUTH_USER / _HASH, scrypt$salt$hash): besseres Modell.
+ * Chat:
+ *   POST /api/chat  { document, instruction, history? } -> { reply, ops, model, authed }
+ *   GET  /api/health -> { ok, modelPublic, modelAuth, keyConfigured }
+ *
+ * Galerie (Community-Mindmaps, jede Karte eine JSON-Datei unter DATA_DIR):
+ *   GET  /api/maps        -> { maps: [{ id, title, nodeCount, publishedAt }] }
+ *   GET  /api/maps/<id>   -> { id, title, nodeCount, publishedAt, document }
+ *   POST /api/maps        { document, title? } -> { id, title, nodeCount }
+ *        Öffentlich; zusätzliches Limit: 3 Veröffentlichungen pro Tag und IP.
+ *
+ * OpenRouter-Key und Basic-Auth-Zugang liegen nur hier (ENV), nie im Frontend.
+ * Erster Start: ggf. Galerie mit der Pflanzenschutz-Karte seeden
+ * (gleicher Baum wie der Frontend-Default in js/pflanzenschutz.js).
  */
 import http from "node:http";
 import crypto from "node:crypto";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 const PORT = Number(process.env.PORT || 3000);
 const OPENROUTER_API_KEY = (process.env.OPENROUTER_API_KEY || "").trim();
@@ -16,11 +26,14 @@ const MODEL_PUBLIC = (process.env.OPENROUTER_MODEL_PUBLIC || "deepseek/deepseek-
 const MODEL_AUTH = (process.env.OPENROUTER_MODEL_AUTH || "anthropic/claude-sonnet-4.5").trim();
 const AUTH_USER = (process.env.MINDMAP_CHAT_AUTH_USER || "").trim();
 const AUTH_HASH = (process.env.MINDMAP_CHAT_AUTH_HASH || "").trim();
+const DATA_DIR = (process.env.DATA_DIR || "/data/maps").trim();
 
 const RATE_ANON_MAX = 10;
 const RATE_ANON_WINDOW_MS = 5 * 60 * 1000;
 const RATE_AUTH_MAX = 60;
 const RATE_AUTH_WINDOW_MS = 5 * 60 * 1000;
+const PUBLISH_MAX_PER_DAY = 3;
+const PUBLISH_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_TREE_NODES = 600;
@@ -30,6 +43,9 @@ const MAX_REPLY_CHARS = 600;
 const OPENROUTER_TIMEOUT_MS = 30 * 1000;
 const MAX_OUTPUT_TOKENS = 2048;
 const NODE_TEXT_MAX = 200;
+const MAX_TITLE_CHARS = 80;
+const MAX_GALLERY_LIST = 200;
+const MAP_ID_RE = /^[a-z0-9-]{1,24}$/;
 
 const NODE_COLORS = new Set(["gold", "green", "cyan", "blue", "orange", "root"]);
 
@@ -122,7 +138,7 @@ function rateOk(key, max, windowMs) {
 
 setInterval(() => {
   const now = Date.now();
-  for (const [k, v] of rateBuckets) if (v.every((t) => now - t >= RATE_AUTH_WINDOW_MS)) rateBuckets.delete(k);
+  for (const [k, v] of rateBuckets) if (v.every((t) => now - t >= PUBLISH_WINDOW_MS)) rateBuckets.delete(k);
 }, 60 * 1000).unref();
 
 // ---------- Eingabe säubern ----------
@@ -166,6 +182,172 @@ function sanitizeHistory(history) {
       return content ? { role, content } : null;
     })
     .filter(Boolean);
+}
+
+// ---------- Galerie: Dokument säubern (fürs Veröffentlichen) ----------
+
+function sanitizeDocument(input) {
+  if (!input || typeof input !== "object" || !input.nodes || typeof input.nodes !== "object") return null;
+  if (!input.nodes.root || typeof input.nodes.root !== "object") return null;
+  const nodes = {};
+  let count = 0;
+  for (const node of Object.values(input.nodes)) {
+    if (!node || typeof node !== "object") continue;
+    const id = typeof node.id === "string" ? node.id.slice(0, 24) : null;
+    if (!id) continue;
+    const clean = {
+      id,
+      parentId: typeof node.parentId === "string" ? node.parentId.slice(0, 24) : null,
+      text: String(node.text || "…").slice(0, NODE_TEXT_MAX),
+    };
+    if (node.parentId && !clean.parentId) clean.parentId = null;
+    for (const field of ["x", "y", "w", "h", "order"]) {
+      if (Number.isFinite(node[field])) clean[field] = Math.max(-1e6, Math.min(1e6, node[field]));
+    }
+    if (["n", "e", "s", "w"].includes(node.dir)) clean.dir = node.dir;
+    if (NODE_COLORS.has(node.color)) clean.color = node.color;
+    if (["horizontal", "vertical", "around", "radial"].includes(node.flow)) clean.flow = node.flow;
+    nodes[id] = clean;
+    if (++count >= MAX_TREE_NODES) break;
+  }
+  if (!nodes.root) return null;
+  for (const node of Object.values(nodes)) {
+    if (node.parentId && !nodes[node.parentId]) return null;
+  }
+  const style = input.style && typeof input.style === "object" ? input.style : {};
+  const cleanStyle = {};
+  if (["color", "mono"].includes(style.color)) cleanStyle.color = style.color;
+  if (["curve", "straight", "elbow"].includes(style.line)) cleanStyle.line = style.line;
+  if (["mixed", "filled", "outline", "text"].includes(style.nodes)) cleanStyle.nodes = style.nodes;
+  if (["horizontal", "vertical", "around", "radial", "mixed"].includes(style.layout)) cleanStyle.layout = style.layout;
+  return {
+    version: 1,
+    style: cleanStyle,
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    nodes,
+  };
+}
+
+// ---------- Galerie: Speicher ----------
+
+function mapPath(id) {
+  return join(DATA_DIR, `${id}.json`);
+}
+
+async function saveMapEntry(entry) {
+  await writeFile(mapPath(entry.id), JSON.stringify(entry, null, 1), "utf8");
+}
+
+async function loadMapEntry(id) {
+  if (!MAP_ID_RE.test(id)) return null;
+  let raw;
+  try {
+    raw = await readFile(mapPath(id), "utf8");
+  } catch {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function listMapEntries() {
+  let files = [];
+  try {
+    files = await readdir(DATA_DIR);
+  } catch {
+    return [];
+  }
+  const entries = [];
+  for (const file of files.slice(0, MAX_GALLERY_LIST * 2)) {
+    if (!file.endsWith(".json")) continue;
+    const entry = await loadMapEntry(file.slice(0, -5));
+    if (entry && entry.id && entry.document && entry.document.nodes && entry.document.nodes.root) {
+      entries.push(entry);
+    }
+    if (entries.length >= MAX_GALLERY_LIST) break;
+  }
+  entries.sort((a, b) => String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")));
+  return entries;
+}
+
+function entryMeta(entry) {
+  return {
+    id: entry.id,
+    title: entry.title,
+    nodeCount: Object.keys(entry.document.nodes || {}).length,
+    publishedAt: entry.publishedAt,
+  };
+}
+
+// ---------- Galerie: Seed (Pflanzenschutz aus dem Frontend-Tree) ----------
+
+function treeToDocument(tree) {
+  const nodes = {};
+  let counter = 0;
+  const walk = (item, parentId, color, dir, order) => {
+    const id = parentId ? `n${++counter}` : "root";
+    const text = String(item.text || "…").slice(0, NODE_TEXT_MAX);
+    const effectiveDir = item.side === "left" ? "w" : item.side === "right" ? "e" : dir || null;
+    nodes[id] = {
+      id,
+      parentId,
+      text,
+      x: 0,
+      y: 0,
+      w: Math.max(40, text.length * 7 + 10),
+      h: 18,
+      order,
+      dir: parentId ? effectiveDir : null,
+      color: NODE_COLORS.has(item.color) ? item.color : color,
+    };
+    const nextColor = NODE_COLORS.has(item.color) ? item.color : color;
+    let index = 0;
+    for (const child of item.children || []) {
+      walk(child, id, nextColor, effectiveDir, index++);
+    }
+  };
+  walk(tree, null, "gold", null, 0);
+  return {
+    version: 1,
+    style: { color: "color", line: "curve", nodes: "mixed", layout: "around" },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    nodes,
+  };
+}
+
+async function seedIfEmpty() {
+  const entries = await listMapEntries();
+  if (entries.length > 0) return;
+  // Container: /app/pflanzenschutz.js (neben server.mjs) — Repo: js/pflanzenschutz.js
+  const candidates = [
+    new URL("./pflanzenschutz.js", import.meta.url),
+    new URL("../js/pflanzenschutz.js", import.meta.url),
+  ];
+  let src = null;
+  for (const url of candidates) {
+    try {
+      src = await readFile(url, "utf8");
+      break;
+    } catch {
+      /* nächste Kandidatin */
+    }
+  }
+  if (src === null) {
+    log("ERROR: pflanzenschutz.js für den Galerie-Seed nicht gefunden");
+    return;
+  }
+  const tree = new Function(`${src}; return PFLANZENSCHUTZ;`)();
+  const entry = {
+    id: "pflanzenschutz",
+    title: "Pflanzenschutz",
+    publishedAt: new Date().toISOString(),
+    document: treeToDocument(tree),
+  };
+  await saveMapEntry(entry);
+  log("Galerie mit Pflanzenschutz-Karte geseedet");
 }
 
 // ---------- OpenRouter ----------
@@ -296,7 +478,7 @@ function sanitizeReply(reply) {
   return text || "Antwort vom Modell konnte nicht gelesen werden.";
 }
 
-// ---------- Handler ----------
+// ---------- Handler: Chat ----------
 
 async function handleChat(req, res) {
   const ip = clientIp(req);
@@ -352,8 +534,67 @@ async function handleChat(req, res) {
   }
 }
 
+// ---------- Handler: Galerie ----------
+
+async function handleListMaps(res) {
+  const entries = await listMapEntries();
+  sendJson(res, 200, { maps: entries.map(entryMeta) });
+}
+
+async function handleGetMap(res, id) {
+  const entry = await loadMapEntry(id);
+  if (!entry) {
+    sendJson(res, 404, { error: "Karte nicht gefunden" });
+    return;
+  }
+  sendJson(res, 200, { ...entryMeta(entry), document: entry.document });
+}
+
+async function handlePublish(req, res) {
+  const ip = clientIp(req);
+  if (!rateOk(`publish:${ip}`, PUBLISH_MAX_PER_DAY, PUBLISH_WINDOW_MS)) {
+    sendJson(res, 429, { error: `Veröffentlichungs-Limit erreicht (${PUBLISH_MAX_PER_DAY} pro Tag und IP).` });
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(await readBody(req));
+  } catch {
+    sendJson(res, 400, { error: "Ungültiger Request-Body (JSON erwartet)" });
+    return;
+  }
+
+  const document = sanitizeDocument(parsed.document);
+  if (!document) {
+    sendJson(res, 400, { error: "Ungültiges Dokument (nodes.root und gültige parentId-Verweise werden benötigt)" });
+    return;
+  }
+
+  const title = str(parsed.title, MAX_TITLE_CHARS) || str(document.nodes.root.text, MAX_TITLE_CHARS) || "Mindmap";
+
+  let id = null;
+  for (let attempt = 0; attempt < 5 && !id; attempt++) {
+    const candidate = crypto.randomBytes(4).toString("hex");
+    if (!(await loadMapEntry(candidate))) id = candidate;
+  }
+  if (!id) {
+    sendJson(res, 500, { error: "Konnte keine freie Karten-Id erzeugen" });
+    return;
+  }
+
+  const entry = { id, title, publishedAt: new Date().toISOString(), document };
+  await saveMapEntry(entry);
+  log(ip, "publish", id, `nodes=${Object.keys(document.nodes).length}`);
+  sendJson(res, 201, { id, title, nodeCount: Object.keys(document.nodes).length });
+}
+
+// ---------- Server ----------
+
 const server = http.createServer((req, res) => {
-  if (req.method === "GET" && (req.url === "/api/health" || req.url === "/health")) {
+  const url = (req.url || "").split("?")[0].replace(/\/+$/, "") || "/";
+
+  if (req.method === "GET" && (url === "/api/health" || url === "/health")) {
     sendJson(res, 200, {
       ok: true,
       modelPublic: MODEL_PUBLIC,
@@ -363,8 +604,30 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  if (req.method === "POST" && (req.url === "/api/chat" || req.url === "/api/chat/")) {
+  if (req.method === "POST" && url === "/api/chat") {
     handleChat(req, res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  if (req.method === "GET" && url === "/api/maps") {
+    handleListMaps(res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  if (req.method === "POST" && url === "/api/maps") {
+    handlePublish(req, res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  const mapMatch = /^\/api\/maps\/([a-z0-9-]{1,24})$/.exec(url);
+  if (req.method === "GET" && mapMatch) {
+    handleGetMap(res, mapMatch[1]).catch((err) => {
       log("FATAL", err);
       if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
     });
@@ -373,6 +636,16 @@ const server = http.createServer((req, res) => {
   sendJson(res, 404, { error: "Not Found" });
 });
 
-server.listen(PORT, () => {
-  log(`listening on :${PORT}`, `keyConfigured=${Boolean(OPENROUTER_API_KEY)}`, `authConfigured=${Boolean(AUTH_USER && AUTH_HASH)}`);
-});
+mkdir(DATA_DIR, { recursive: true })
+  .then(() => seedIfEmpty())
+  .catch((err) => log("ERROR beim Daten-Verzeichnis/Seed:", err.message))
+  .finally(() => {
+    server.listen(PORT, () => {
+      log(
+        `listening on :${PORT}`,
+        `keyConfigured=${Boolean(OPENROUTER_API_KEY)}`,
+        `authConfigured=${Boolean(AUTH_USER && AUTH_HASH)}`,
+        `dataDir=${DATA_DIR}`,
+      );
+    });
+  });

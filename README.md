@@ -53,6 +53,18 @@ Eine neue Karte aus einem Baum erzeugt `buildTreeNodes(tree)` und danach `relayo
 
 Serverseitige Umgebung (Webstack `.env`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`).
 
+## Galerie (Community)
+
+Beim Besuch startet die Seite mit einem großen **Neue Mindmap erstellen** und der **Galerie** darunter. Jede Karte bleibt lokal im Browser — privat. Veröffentlichen geschieht nie automatisch, sondern nur über **Veröffentlichen …** mit gesicherter Nachfrage: im Dialog muss man **veröffentlichen** eintippen, bevor der Button frei wird. Veröffentlicht wird das ganze Dokument (alle Knotentexte, Stil) — dauerhaft, öffentlich, ohne Lösch-Button.
+
+- `GET /api/maps` → Liste; `GET /api/maps/<id>` → Dokument; `POST /api/maps` → veröffentlichen (Body `{document, title?}`, Server-Limit: 3 pro Tag und IP, Dokument wird gesäubert/validiert).
+- Speicher: Docker-Volume `webstack_mindmap_data`, eine JSON-Datei pro Karte unter `/data/maps/`.
+- Erster Start: die Galerie wird mit der **Pflanzenschutz**-Karte geseedet (derselbe Baum wie der Frontend-Default in `js/pflanzenschutz.js`).
+- **Löschen (nur Admin, serverseitig):** Karte entfernen mit
+  `docker run --rm -v webstack_mindmap_data:/data alpine rm /data/maps/<id>.json` —
+  die Galerie liest live, kein Neustart nötig.
+- Ansichtsmodus: veröffentlichte Karten werden read-only betrachtet (kein Schreiben in localStorage); **Als eigene Kopie übernehmen** lädt sie lokal.
+
 ## Bereitstellen
 
 Die Dateien sind statisch und können so auf einen Webserver, zum Beispiel nginx auf Hetzner:

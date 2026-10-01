@@ -775,6 +775,9 @@ const Mindmap = {
     assertMindmapDocument(doc);
     state.nodes = JSON.parse(JSON.stringify(doc.nodes));
     state.style = withStyle({ style: doc.style || {} }).style;
+    // Auswahl zurücksetzen: die alte selectedId gehört meist zum vorherigen
+    // Dokument und existiert im neuen nicht (z. B. Galerie-Kopie).
+    state.selectedId = "root";
     if (doc.camera) {
       state.panX = Number.isFinite(doc.camera.panX) ? doc.camera.panX : state.panX;
       state.panY = Number.isFinite(doc.camera.panY) ? doc.camera.panY : state.panY;

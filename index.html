@@ -4,18 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/app.css?v=32" />
   </head>
   <body>
     <header class="bar">
       <div class="brand">Mindmap</div>
       <div class="actions">
         <button type="button" id="add-child">Kind</button>
-        <button type="button" id="relayout" title="Unterpunkte des gewählten Knotens neu anordnen">Anordnen</button>
+        <button type="button" id="relayout" title="Legt Linien neu an. Der Bereich bestimmt, ob nur die Ausgänge des gewählten Knotens oder der ganze Unterbaum betroffen sind">Anordnen</button>
         <button type="button" id="delete-node">Löschen</button>
         <button type="button" id="download-image" title="Karte als PNG herunterladen">Bild</button>
       </div>
       <div class="styles">
+        <label id="scope-field" title="Nur Auswahl ändert den markierten Knoten und seine ausgehenden Linien. Gesamter Unterbaum schreibt denselben Wert auf alle Nachfahren.">
+          Bereich
+          <select id="style-scope">
+            <option value="node">Nur Auswahl</option>
+            <option value="subtree">Gesamter Unterbaum</option>
+          </select>
+        </label>
         <label>
           Farbe
           <select id="style-color">
@@ -31,8 +38,16 @@
             <option value="elbow">Abgewinkelt</option>
           </select>
         </label>
-        <label title="Gilt nur für den gewählten Knoten. Für die ganze Karte zuerst den Ursprung wählen.">
-          Anordnung
+        <label id="anchor-field" title="Zeigt die Ankerpunkte am gewählten Knoten. Ein Klick auf eine Linie zeigt ihren Punkt auch bei ausgeschalteter Box. Bei nahem Zoom erscheint er außerdem unter dem Zeiger.">
+          <input id="show-anchors" type="checkbox" checked />
+          Anker
+        </label>
+        <label id="reach-field" title="Abstand der ausgehenden Linien. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
+          Länge
+          <input id="style-reach" type="range" min="0" max="160" step="2" value="14" />
+        </label>
+        <label id="layout-field" title="Anordnung der ausgehenden Linien. Der Bereich bestimmt, ob Nachfahren dieselbe Anordnung erhalten.">
+          <span id="layout-label">Anordnung</span>
           <select id="style-layout">
             <option value="continue">Weiter</option>
             <option value="around">Rundherum</option>
@@ -51,16 +66,17 @@
           </select>
         </label>
       </div>
-      <p class="hint">Anordnung gilt für den gewählten Knoten · Ursprung ordnet die ganze Karte · Tab Kind</p>
+      <p class="hint">Bereich gilt für Farbe, Linien, Länge, Knoten, Anordnung und Anordnen</p>
     </header>
     <main id="viewport">
       <div id="world">
         <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
         <div id="nodes"></div>
+        <div id="ports"></div>
       </div>
     </main>
-    <script src="js/pflanzenschutz.js?v=20"></script>
-    <script src="js/layout.js?v=20"></script>
-    <script src="js/app.js?v=20"></script>
+    <script src="js/pflanzenschutz.js?v=31"></script>
+    <script src="js/layout.js?v=33"></script>
+    <script src="js/app.js?v=39"></script>
   </body>
 </html>

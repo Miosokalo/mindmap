@@ -29,7 +29,7 @@
         "nodes": { "enum": ["mixed", "filled", "outline", "text"] },
         "layout": {
           "enum": ["around", "horizontal", "vertical", "radial", "mixed"],
-          "description": "Fallback für den Ursprung, wenn root.flow fehlt. around: vier Seiten. horizontal: links/rechts. vertical: oben/unten. radial: Striche gleichmäßig im freien Bogen. mixed: wie around."
+          "description": "Fallback für den Ursprung, wenn root.flow fehlt. around: Fächer in der Fließrichtung, Linien starten gleichmäßig an den Kanten. horizontal: links/rechts. vertical: oben/unten. radial: Striche gleichmäßig im freien Bogen. mixed: wie around."
         }
       }
     },
@@ -77,6 +77,34 @@
           "description": "Bevorzugte Seite, wenn style.layout horizontal ist."
         },
         "color": { "type": "string" },
+        "colorMode": {
+          "enum": ["color", "mono"],
+          "description": "Bunt oder schwarz-weiß für diesen Knoten und seine ausgehenden Linien. Fehlt das Feld, gilt style.color."
+        },
+        "line": {
+          "enum": ["curve", "straight", "elbow"],
+          "description": "Form der ausgehenden Linien. Fehlt das Feld, gilt style.line."
+        },
+        "look": {
+          "enum": ["mixed", "filled", "outline", "text"],
+          "description": "Darstellung dieses Knotens. Fehlt das Feld, gilt style.nodes."
+        },
+        "reach": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 240,
+          "description": "Zusätzlicher Abstand der ausgehenden Linien in Weltpixeln. Fehlt das Feld, gilt 14."
+        },
+        "port": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["side", "t"],
+          "description": "Manueller Start der Linie an einer Kante des Elternknotens. Anordnen entfernt das Feld.",
+          "properties": {
+            "side": { "enum": ["n", "e", "s", "w"] },
+            "t": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
         "side": {
           "description": "Alter Layout-Hinweis, 1 rechts und -1 links. Neue Dokumente nutzen prefer."
         }

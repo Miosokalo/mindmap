@@ -47,6 +47,30 @@ Ein Knoten kann `colorMode` (`color`, `mono`), `line` (`curve`, `straight`, `elb
 
 Eine neue Karte aus einem Baum erzeugt `buildTreeNodes(tree)` und danach `relayoutNodes(nodes, style, "root", textWidth)`.
 
+## Chat-Assistent (OpenRouter)
+
+Über **Chat** in der Kopfleiste öffnet sich ein Panel. Der Assistent ändert die Karte auf Zuruf, z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.
+
+- `js/chat.js` schickt den kompakten Baum (`id`, `parentId`, `text`, `order`, `color`, `dir`) und den Auftrag an `POST /api/chat` — gleicher Ursprung, ohne Koordinaten.
+- `api/server.mjs` (Zero-Dependency-Node) hält den OpenRouter-Key **nur serverseitig** und ruft `https://openrouter.ai/api/v1/chat/completions` auf.
+- Das Modell antwortet mit `{ reply, ops }`; `ops` folgen `schema/mindmap.ops.json` und werden über die vorhandenen Funktionen (`addChild`, `deleteNode`, `Mindmap.setStyle`, `relayoutNodes`) angewandt. Ungültige Ops werden übersprungen, die Karte bleibt immer valide.
+- Ohne Zugang: kleines/günstiges Modell mit strengem Rate-Limit (Caddy + Proxy). Mit Zugang (**Schlüssel** im Panel, Basic Auth): bessere Modelle.
+- `GET /api/health` zeigt Modellkonfiguration und ob der Key gesetzt ist.
+
+Serverseitige Umgebung (Webstack `.env`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`).
+
+## Galerie (Community)
+
+Beim Besuch startet die Seite mit einem großen **Neue Mindmap erstellen** und der **Galerie** darunter. Jede Karte bleibt lokal im Browser — privat. Veröffentlichen geschieht nie automatisch, sondern nur über **Veröffentlichen …** mit gesicherter Nachfrage: im Dialog muss man **veröffentlichen** eintippen, bevor der Button frei wird. Veröffentlicht wird das ganze Dokument (alle Knotentexte, Stil) — dauerhaft, öffentlich, ohne Lösch-Button.
+
+- `GET /api/maps` → Liste; `GET /api/maps/<id>` → Dokument; `POST /api/maps` → veröffentlichen (Body `{document, title?}`, Server-Limit: 3 pro Tag und IP, Dokument wird gesäubert/validiert).
+- Speicher: Docker-Volume `webstack_mindmap_data`, eine JSON-Datei pro Karte unter `/data/maps/`.
+- Erster Start: die Galerie wird mit der **Pflanzenschutz**-Karte geseedet (derselbe Baum wie der Frontend-Default in `js/pflanzenschutz.js`).
+- **Löschen (nur Admin, serverseitig):** Karte entfernen mit
+  `docker run --rm -v webstack_mindmap_data:/data alpine rm /data/maps/<id>.json` —
+  die Galerie liest live, kein Neustart nötig.
+- Öffnen einer Galerie-Karte: sie wird als **lokal bearbeitbare Kopie** geöffnet (ersetzt die aktuelle Karte nach Rückfrage); die veröffentlichte Karte auf dem Server bleibt davon unberührt. Ein Kopie-Banner weist darauf hin; **Zurück zur Galerie** behält die Kopie als eigene Karte.
+
 ## Bereitstellen
 
 Die Dateien sind statisch und können so auf einen Webserver, zum Beispiel nginx auf Hetzner:

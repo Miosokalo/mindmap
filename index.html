@@ -4,16 +4,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css?v=32" />
+    <link rel="stylesheet" href="css/app.css?v=33" />
   </head>
   <body>
-    <header class="bar">
+    <div id="start" hidden>
+      <div class="start-inner">
+        <h1 class="start-brand">Mindmap</h1>
+        <p class="start-sub">Denken, sammeln, ordnen — deine Karte bleibt lokal in deinem Browser.</p>
+        <button type="button" id="start-new" class="start-new">
+          <span class="start-plus" aria-hidden="true">+</span>
+          <span>Neue Mindmap erstellen</span>
+        </button>
+        <button type="button" id="start-continue" class="start-continue" hidden>
+          „<span id="start-continue-title"></span>“ fortsetzen
+        </button>
+        <section class="gallery">
+          <h2 class="gallery-title">Galerie</h2>
+          <p class="gallery-sub">Karten der Community — zum Anschauen und als eigene Kopie.</p>
+          <div id="gallery-cards" class="gallery-cards"></div>
+          <p id="gallery-empty" hidden>Noch keine Karten veröffentlicht.</p>
+          <p id="gallery-error" hidden></p>
+        </section>
+      </div>
+    </div>
+    <header class="bar" id="topbar">
       <div class="brand">Mindmap</div>
       <div class="actions">
+        <button type="button" id="back-start" title="Zur Übersicht und Galerie">Galerie</button>
         <button type="button" id="add-child">Kind</button>
         <button type="button" id="relayout" title="Legt Linien neu an. Der Bereich bestimmt, ob nur die Ausgänge des gewählten Knotens oder der ganze Unterbaum betroffen sind">Anordnen</button>
         <button type="button" id="delete-node">Löschen</button>
         <button type="button" id="download-image" title="Karte als PNG herunterladen">Bild</button>
+        <button type="button" id="chat-toggle" title="Assistenten öffnen">Chat</button>
+        <button type="button" id="publish" title="Karte in die öffentliche Galerie stellen">Veröffentlichen …</button>
       </div>
       <div class="styles">
         <label id="scope-field" title="Nur Auswahl ändert den markierten Knoten und seine ausgehenden Linien. Gesamter Unterbaum schreibt denselben Wert auf alle Nachfahren.">
@@ -75,8 +98,50 @@
         <div id="ports"></div>
       </div>
     </main>
+    <div id="view-banner" hidden>
+      <span class="view-title-label">Lokale Kopie von:</span>
+      <strong id="view-title"></strong>
+      <span class="view-note">Bearbeite sie frei — die veröffentlichte Karte bleibt unverändert.</span>
+      <button type="button" id="view-back">Zurück zur Galerie</button>
+    </div>
+    <aside id="chat" hidden>
+      <div class="chat-head">
+        <span class="chat-title">Assistent</span>
+        <span id="chat-model" class="chat-model"></span>
+        <button type="button" id="chat-auth" title="Zugang für bessere Modelle">Schlüssel</button>
+      </div>
+      <div id="chat-messages"></div>
+      <form id="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="z. B. Füge unter der Wurzel einen Knoten ‚Wetter‘ an"></textarea>
+        <button type="submit" id="chat-send">Senden</button>
+      </form>
+    </aside>
+    <div id="publish-dialog" hidden>
+      <div class="publish-card">
+        <h3>Karte veröffentlichen</h3>
+        <p class="publish-warn">
+          Die Karte wird <strong>öffentlich in der Galerie</strong> sichtbar — alle
+          <span id="publish-node-count"></span> Knotentexte, dauerhaft gespeichert auf dem Server.
+          Zurückholen kann sie nur der Server-Administrator.
+        </p>
+        <label>
+          Titel
+          <input id="publish-title" type="text" maxlength="80" autocomplete="off" />
+        </label>
+        <p class="publish-confirm-hint">Zur Bestätigung <strong>veröffentlichen</strong> eintippen:</p>
+        <input id="publish-confirm" type="text" autocomplete="off" spellcheck="false" placeholder="veröffentlichen" />
+        <div class="publish-actions">
+          <button type="button" id="publish-cancel">Abbrechen</button>
+          <button type="button" id="publish-submit" disabled>Veröffentlichen</button>
+        </div>
+      </div>
+    </div>
+    <div id="toast" hidden></div>
     <script src="js/pflanzenschutz.js?v=31"></script>
     <script src="js/layout.js?v=33"></script>
-    <script src="js/app.js?v=39"></script>
+    <script src="js/collider.js?v=2"></script>
+    <script src="js/app.js?v=40"></script>
+    <script src="js/chat.js?v=21"></script>
+    <script src="js/gallery.js?v=23"></script>
   </body>
 </html>

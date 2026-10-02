@@ -38,6 +38,16 @@ function withStyle(parsed) {
   return parsed;
 }
 
+// Automatisches Anordnen + ultimativer Anti-Collider (js/collider.js):
+// garantiert, dass danach keine Knoten überlappen, keine Kante durch einen
+// fremden Knoten läuft und keine Kanten sich kreuzen.
+function relayoutCollided(nodes, style, anchorId) {
+  const anchor = nodes[anchorId] || nodes.root;
+  if (!anchor) return;
+  relayoutNodes(nodes, style, anchorId, textWidth);
+  if (typeof antiCollide === "function") antiCollide(nodes, style && style.line);
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -50,7 +60,7 @@ function loadState() {
     if (styled.mapVersion !== MAP_VERSION) {
       styled.mapVersion = MAP_VERSION;
       styled.centered = false;
-      relayoutNodes(styled.nodes, styled.style, "root", textWidth);
+      relayoutCollided(styled.nodes, styled.style, "root");
     }
     return styled;
   } catch {
@@ -61,7 +71,7 @@ function loadState() {
 function freshState() {
   const style = defaultStyle();
   const nodes = buildTreeNodes(PFLANZENSCHUTZ);
-  relayoutNodes(nodes, style, "root", textWidth);
+  relayoutCollided(nodes, style, "root");
   return {
     panX: 0,
     panY: 0,
@@ -208,9 +218,11 @@ function syncNodeSizes() {
 }
 
 function nodeBox(node) {
-  const el = nodesEl.querySelector(`[data-id="${node.id}"]`);
-  const w = el ? el.offsetWidth : node.w || 48;
-  const h = el ? el.offsetHeight : 22;
+  // Rein aus den Layout-Maßen (node.w/node.h enthalten bereits Padding+Rahmen
+  // über textWidth) — deterministisch, auch vor dem ersten Rendern und damit
+  // identisch zur Sicht des Anti-Colliders.
+  const w = node.w || 48;
+  const h = node.h || 22;
   return {
     left: node.x - w / 2,
     right: node.x + w / 2,
@@ -681,6 +693,12 @@ function outgoingGeometry(parent, node, evenMap) {
   return geo;
 }
 
+// Kante genau so berechnen, wie sie gezeichnet wird — eine einzige Quelle
+// für renderEdges UND den Anti-Collider (js/collider.js).
+function computeEdgePath(nodes, node, parent) {
+  return outgoingGeometry(parent, node, evenMapFor(parent)).d;
+}
+
 function renderEdges() {
   const points = nodeList().map((node) => ({ x: node.x, y: node.y }));
   if (points.length === 0) {
@@ -835,6 +853,7 @@ function addChild(parentId) {
   if (Number.isFinite(parent.reach)) state.nodes[id].reach = parent.reach;
   state.selectedId = id;
   relayoutOutgoing(state.nodes, parentId, state.style, textWidth);
+  if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
   saveState();
   render();
   const text = nodesEl.querySelector(`[data-id="${id}"] .node-text`);
@@ -1089,6 +1108,13 @@ function scopedNodes(id) {
   return list;
 }
 
+function clearDescendantFlows(id) {
+  for (const child of childrenOf(id)) {
+    delete child.flow;
+    clearDescendantFlows(child.id);
+  }
+}
+
 function setNodeFlow(node, flow) {
   if (!node.parentId) {
     const layout = flow === "continue" ? "around" : flow;
@@ -1119,8 +1145,15 @@ function applyArrangement(nodeId, flow) {
   const node = state.nodes[nodeId];
   if (!node) return;
   for (const target of scopedNodes(nodeId)) setNodeFlow(target, flow);
-  if (state.scope === "subtree") relayoutNodes(state.nodes, state.style, node.id, textWidth);
-  else relayoutOutgoing(state.nodes, node.id, state.style, textWidth);
+  if (state.scope === "subtree") relayoutCollided(state.nodes, state.style, node.id);
+  else {
+    relayoutOutgoing(state.nodes, node.id, state.style, textWidth);
+    if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
+  }
+  if (!node.parentId) {
+    state.centered = false;
+    centerIfNeeded();
+  }
 }
 
 function syncStyleControls() {
@@ -1155,6 +1188,7 @@ for (const [id, key] of [
     const targetId = styleTarget[key] || state.selectedId || "root";
     styleTarget[key] = null;
     applyStyleKey(targetId, key, control.value);
+    if (key === "line" && typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
     saveState();
     render();
   });
@@ -1366,6 +1400,9 @@ const Mindmap = {
     assertMindmapDocument(doc);
     state.nodes = JSON.parse(JSON.stringify(doc.nodes));
     state.style = withStyle({ style: doc.style || {} }).style;
+    // Auswahl zurücksetzen: die alte selectedId gehört meist zum vorherigen
+    // Dokument und existiert im neuen nicht (z. B. Galerie-Kopie).
+    state.selectedId = "root";
     if (doc.camera) {
       state.panX = Number.isFinite(doc.camera.panX) ? doc.camera.panX : state.panX;
       state.panY = Number.isFinite(doc.camera.panY) ? doc.camera.panY : state.panY;
@@ -1379,8 +1416,11 @@ const Mindmap = {
   },
   relayout(nodeId, options) {
     const id = nodeId || state.selectedId || "root";
-    if (options && options.deep) relayoutNodes(state.nodes, state.style, id, textWidth);
-    else relayoutOutgoing(state.nodes, id, state.style, textWidth);
+    if (!options || options.deep) relayoutCollided(state.nodes, state.style, id);
+    else {
+      relayoutOutgoing(state.nodes, id, state.style, textWidth);
+      if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
+    }
     saveState();
     render();
     return mindmapDocument();
@@ -1392,7 +1432,10 @@ const Mindmap = {
     if (layoutChanged && state.nodes.root) {
       const layout = next.layout === "mixed" ? "around" : next.layout;
       state.nodes.root.flow = layout;
-      relayoutOutgoing(state.nodes, "root", state.style, textWidth);
+      clearDescendantFlows("root");
+      relayoutCollided(state.nodes, state.style, "root");
+      state.centered = false;
+      centerIfNeeded();
     }
     syncStyleControls();
     saveState();

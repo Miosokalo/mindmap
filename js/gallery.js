@@ -17,6 +17,7 @@
   const galleryEmpty = document.getElementById("gallery-empty");
   const galleryError = document.getElementById("gallery-error");
   const topbar = document.getElementById("topbar");
+  const layoutbar = document.getElementById("layoutbar");
   const viewport = document.getElementById("viewport");
   const viewBanner = document.getElementById("view-banner");
   const viewTitle = document.getElementById("view-title");
@@ -43,6 +44,7 @@
   function showStart() {
     startEl.hidden = false;
     topbar.hidden = true;
+    if (layoutbar) layoutbar.hidden = true;
     viewport.hidden = true;
     viewBanner.hidden = true;
     if (chatPanel) chatPanel.hidden = true;
@@ -53,6 +55,7 @@
   function showEditor() {
     startEl.hidden = true;
     topbar.hidden = false;
+    if (layoutbar) layoutbar.hidden = false;
     viewport.hidden = false;
     viewport.style.display = "";
     // Kopie-Banner nur zeigen, wenn gerade eine lokal geöffnete Galerie-Kopie

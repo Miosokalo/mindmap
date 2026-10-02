@@ -48,9 +48,43 @@ body {
   backdrop-filter: blur(8px);
 }
 
-.brand {
+.brand,
+.bar-title {
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.layout-bar {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(28, 25, 23, 0.08);
+}
+
+.current-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.current-node-label {
+  white-space: nowrap;
+}
+
+.selected-frame {
+  min-width: 0;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid rgba(28, 25, 23, 0.22);
+  border-radius: 6px;
+  padding: 4px 10px;
 }
 
 .actions,

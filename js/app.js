@@ -173,7 +173,9 @@ function renderNodes() {
 
     el.addEventListener("pointerdown", (event) => onNodePointerDown(event, node.id));
     el.addEventListener("dblclick", (event) => {
+      event.preventDefault();
       event.stopPropagation();
+      drag = null;
       beginEdit(node.id, text);
     });
     nodesEl.append(el);
@@ -1036,9 +1038,10 @@ window.addEventListener("pointerup", (event) => {
     if (handle) handle.classList.remove("dragging");
   }
   const movedNode = drag.kind === "node";
+  const shifted = movedNode && Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY) > 4;
   viewport.classList.remove("panning");
   drag = null;
-  if (movedNode) {
+  if (shifted) {
     syncNodeSizes();
     clearCrossings(state.nodes);
     render();
@@ -1081,16 +1084,17 @@ function shownFlow(node) {
 
 function syncArrangementControl() {
   const select = document.getElementById("style-layout");
-  const label = document.getElementById("layout-label");
   if (!select) return;
   const node = state.nodes[state.selectedId];
   const continueOption = select.querySelector('option[value="continue"]');
   if (continueOption) continueOption.hidden = !node || !node.parentId;
   const next = shownFlow(node);
   if (select.value !== next) select.value = next;
-  if (!label) return;
-  const name = node && node.text ? (node.text.length > 24 ? `${node.text.slice(0, 23)}…` : node.text) : "Knoten";
-  label.textContent = `Anordnung · ${name}`;
+  const frame = document.getElementById("selected-name");
+  if (!frame) return;
+  const name = node && node.text ? node.text : "Keiner";
+  frame.textContent = name;
+  frame.title = name;
 }
 
 function scopedNodes(id) {
@@ -1234,7 +1238,7 @@ layoutSelect.addEventListener("change", () => {
 });
 
 document.getElementById("relayout").addEventListener("click", () => {
-  Mindmap.relayout(state.selectedId || "root", { deep: state.scope === "subtree" });
+  Mindmap.relayout(state.selectedId || "root", { deep: false });
 });
 
 document.getElementById("add-child").addEventListener("click", () => {

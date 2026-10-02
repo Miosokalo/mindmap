@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css?v=33" />
+    <link rel="stylesheet" href="css/app.css?v=34" />
   </head>
   <body>
     <div id="start" hidden>
@@ -31,13 +31,19 @@
       <div class="brand">Mindmap</div>
       <div class="actions">
         <button type="button" id="back-start" title="Zur Übersicht und Galerie">Galerie</button>
-        <button type="button" id="add-child">Kind</button>
-        <button type="button" id="relayout" title="Legt Linien neu an. Der Bereich bestimmt, ob nur die Ausgänge des gewählten Knotens oder der ganze Unterbaum betroffen sind">Anordnen</button>
+        <button type="button" id="add-child">+ Kind</button>
         <button type="button" id="delete-node">Löschen</button>
         <button type="button" id="download-image" title="Karte als PNG herunterladen">Bild</button>
         <button type="button" id="chat-toggle" title="Assistenten öffnen">Chat</button>
         <button type="button" id="publish" title="Karte in die öffentliche Galerie stellen">Veröffentlichen …</button>
       </div>
+      <div class="current-node">
+        <span class="current-node-label">Aktuell ausgewählt:</span>
+        <span id="selected-name" class="selected-frame"></span>
+      </div>
+    </header>
+    <div class="bar layout-bar" id="layoutbar">
+      <div class="bar-title">Layout</div>
       <div class="styles">
         <label id="scope-field" title="Nur Auswahl ändert den markierten Knoten und seine ausgehenden Linien. Gesamter Unterbaum schreibt denselben Wert auf alle Nachfahren.">
           Bereich
@@ -66,11 +72,11 @@
           Anker
         </label>
         <label id="reach-field" title="Abstand der ausgehenden Linien. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
-          Länge
+          Strichlänge
           <input id="style-reach" type="range" min="0" max="160" step="2" value="14" />
         </label>
         <label id="layout-field" title="Anordnung der ausgehenden Linien. Der Bereich bestimmt, ob Nachfahren dieselbe Anordnung erhalten.">
-          <span id="layout-label">Anordnung</span>
+          Anordnung
           <select id="style-layout">
             <option value="continue">Weiter</option>
             <option value="around">Rundherum</option>
@@ -88,9 +94,10 @@
             <option value="text">Nur Text</option>
           </select>
         </label>
+        <button type="button" id="relayout" title="Legt nur die ausgehenden Linien des ausgewählten Knotens neu an. Der Knoten selbst bleibt, wo er steht.">Anordnen</button>
       </div>
-      <p class="hint">Bereich gilt für Farbe, Linien, Länge, Knoten, Anordnung und Anordnen</p>
-    </header>
+      <p class="hint">Bereich gilt für Farbe, Linien, Strichlänge, Knoten und Anordnung. Anordnen gilt immer nur für den ausgewählten Knoten.</p>
+    </div>
     <main id="viewport">
       <div id="world">
         <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -140,8 +147,8 @@
     <script src="js/pflanzenschutz.js?v=31"></script>
     <script src="js/layout.js?v=33"></script>
     <script src="js/collider.js?v=2"></script>
-    <script src="js/app.js?v=40"></script>
+    <script src="js/app.js?v=43"></script>
     <script src="js/chat.js?v=21"></script>
-    <script src="js/gallery.js?v=23"></script>
+    <script src="js/gallery.js?v=24"></script>
   </body>
 </html>

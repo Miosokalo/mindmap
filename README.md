@@ -21,7 +21,7 @@ Dann `http://127.0.0.1:8777` öffnen.
 - **Gesamter Unterbaum** schreibt denselben Wert auf alle Nachfahren und legt den ganzen Zweig neu
 - **Anker** blendet die Punkte am gewählten Knoten ein oder aus. Ein Klick auf eine Linie zeigt ihren Punkt trotzdem. Bei nahem Zoom erscheint er auch unter dem Zeiger; weit herausgezoomt nicht
 - **Rundherum** verteilt die ausgehenden Linien gleichmäßig auf die Kanten. Die Punkte lassen sich ziehen und rasten an der nächsten Kante ein. Anordnen und ein neuer Unterpunkt setzen das zurück
-- **Bild** speichert die ganze Karte als PNG, unabhängig vom Ausschnitt
+- **Download** speichert die ganze Karte als PNG oder PDF, unabhängig vom Ausschnitt
 - **Gleichmäßig** legt die Striche wie eine Sonne in den freien Bogen: rechts, schräg, oben, schräg links und links, soweit dort Platz ist und nicht der Elternknoten steht
 - **Weiter** lässt die Unterpunkte in der Richtung des Elternknotens weiterlaufen
 - Oben–Unten setzt die Striche an die Ober- und Unterkante, die Wörter stehen darüber oder darunter
@@ -36,6 +36,7 @@ const doc = Mindmap.getDocument();
 Mindmap.setStyle({ layout: "vertical", line: "straight" });
 Mindmap.relayout("root");
 Mindmap.downloadImage();
+Mindmap.downloadPdf();
 Mindmap.setDocument(doc);
 ```
 
@@ -57,7 +58,7 @@ Eine neue Karte aus einem Baum erzeugt `buildTreeNodes(tree)` und danach `relayo
 - Ohne Zugang: kleines/günstiges Modell mit strengem Rate-Limit (Caddy + Proxy). Mit Zugang (**Schlüssel** im Panel, Basic Auth): bessere Modelle.
 - `GET /api/health` zeigt Modellkonfiguration und ob der Key gesetzt ist.
 
-Serverseitige Umgebung (Webstack `.env`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`).
+Serverseitige Umgebung (`mindmap/.env`, Vorlage `mindmap/.env.example`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`). Key: https://openrouter.ai/keys
 
 ## Galerie (Community)
 

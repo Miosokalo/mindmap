@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css?v=34" />
+    <link rel="stylesheet" href="css/app.css?v=36" />
   </head>
   <body>
     <div id="start" hidden>
@@ -28,18 +28,28 @@
       </div>
     </div>
     <header class="bar" id="topbar">
-      <div class="brand">Mindmap</div>
-      <div class="actions">
-        <button type="button" id="back-start" title="Zur Übersicht und Galerie">Galerie</button>
-        <button type="button" id="add-child">+ Kind</button>
-        <button type="button" id="delete-node">Löschen</button>
-        <button type="button" id="download-image" title="Karte als PNG herunterladen">Bild</button>
-        <button type="button" id="chat-toggle" title="Assistenten öffnen">Chat</button>
-        <button type="button" id="publish" title="Karte in die öffentliche Galerie stellen">Veröffentlichen …</button>
+      <div class="bar-start">
+        <div class="brand">Mindmap</div>
+        <div class="actions">
+          <button type="button" id="add-child">+ Kind</button>
+          <button type="button" id="delete-node">Löschen</button>
+          <button type="button" id="chat-toggle" title="Assistenten öffnen">Chat</button>
+        </div>
       </div>
       <div class="current-node">
         <span class="current-node-label">Aktuell ausgewählt:</span>
         <span id="selected-name" class="selected-frame"></span>
+      </div>
+      <div class="bar-end">
+        <button type="button" id="back-start" title="Zur Übersicht und Galerie">Galerie</button>
+        <div class="download-wrap">
+          <button type="button" id="download-toggle" title="Karte herunterladen" aria-expanded="false" aria-haspopup="menu" aria-controls="download-menu">Download</button>
+          <div id="download-menu" class="download-menu" hidden role="menu">
+            <button type="button" id="download-image" role="menuitem">als Bild</button>
+            <button type="button" id="download-pdf" role="menuitem">als PDF</button>
+          </div>
+        </div>
+        <button type="button" id="publish" title="Karte in die öffentliche Galerie stellen">Veröffentlichen …</button>
       </div>
     </header>
     <div class="bar layout-bar" id="layoutbar">
@@ -147,7 +157,7 @@
     <script src="js/pflanzenschutz.js?v=31"></script>
     <script src="js/layout.js?v=33"></script>
     <script src="js/collider.js?v=2"></script>
-    <script src="js/app.js?v=43"></script>
+    <script src="js/app.js?v=45"></script>
     <script src="js/chat.js?v=21"></script>
     <script src="js/gallery.js?v=24"></script>
   </body>

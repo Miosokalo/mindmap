@@ -879,18 +879,32 @@ function deleteNode(id) {
   render();
 }
 
-function beginEdit(id, textEl) {
-  const node = state.nodes[id];
-  if (!node) return;
-  const card = textEl.parentElement;
-  card.classList.add("editing");
-  textEl.contentEditable = "true";
+function selectAllText(textEl) {
+  if (!textEl) return;
   textEl.focus();
+  const selection = window.getSelection();
+  if (!selection) return;
   const range = document.createRange();
   range.selectNodeContents(textEl);
-  const selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
+}
+
+function beginEdit(id, textEl) {
+  const node = state.nodes[id];
+  if (!node || !textEl) return;
+  const card = textEl.parentElement;
+  if (textEl.isContentEditable) {
+    selectAllText(textEl);
+    const again = requestAnimationFrame(() => selectAllText(textEl));
+    textEl.addEventListener("keydown", () => cancelAnimationFrame(again), { once: true });
+    return;
+  }
+  card.classList.add("editing");
+  textEl.contentEditable = "true";
+  selectAllText(textEl);
+  const again = requestAnimationFrame(() => selectAllText(textEl));
+  textEl.addEventListener("keydown", () => cancelAnimationFrame(again), { once: true });
 
   const finish = () => {
     textEl.contentEditable = "false";
@@ -922,6 +936,13 @@ function onNodePointerDown(event, id) {
   if (event.target.isContentEditable) return;
   event.stopPropagation();
   state.selectedId = id;
+  if (event.detail >= 2) {
+    event.preventDefault();
+    drag = null;
+    const text = event.currentTarget.querySelector(".node-text");
+    if (text) beginEdit(id, text);
+    return;
+  }
   const node = state.nodes[id];
   drag = {
     kind: "node",
@@ -1249,9 +1270,42 @@ document.getElementById("delete-node").addEventListener("click", () => {
   deleteNode(state.selectedId);
 });
 
-document.getElementById("download-image").addEventListener("click", () => {
-  downloadImage();
-});
+function closeDownloadMenu() {
+  const menu = document.getElementById("download-menu");
+  const toggle = document.getElementById("download-toggle");
+  if (menu) menu.hidden = true;
+  if (toggle) toggle.setAttribute("aria-expanded", "false");
+}
+
+const downloadToggle = document.getElementById("download-toggle");
+const downloadMenu = document.getElementById("download-menu");
+if (downloadToggle && downloadMenu) {
+  downloadToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = downloadMenu.hidden;
+    downloadMenu.hidden = !open;
+    downloadToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  document.addEventListener("click", (event) => {
+    if (!downloadToggle.parentElement.contains(event.target)) closeDownloadMenu();
+  });
+}
+
+const downloadImageButton = document.getElementById("download-image");
+if (downloadImageButton) {
+  downloadImageButton.addEventListener("click", () => {
+    closeDownloadMenu();
+    downloadImage();
+  });
+}
+
+const downloadPdfButton = document.getElementById("download-pdf");
+if (downloadPdfButton) {
+  downloadPdfButton.addEventListener("click", () => {
+    closeDownloadMenu();
+    downloadPdf();
+  });
+}
 
 window.addEventListener("keydown", (event) => {
   const editing = document.querySelector(".node-text[contenteditable='true']");
@@ -1265,6 +1319,8 @@ window.addEventListener("keydown", (event) => {
   } else if (event.key === "F2") {
     const el = nodesEl.querySelector(`[data-id="${state.selectedId}"] .node-text`);
     if (el) beginEdit(state.selectedId, el);
+  } else if (event.key === "Escape") {
+    closeDownloadMenu();
   }
 });
 
@@ -1307,14 +1363,78 @@ function contentBounds() {
   return { minX, minY, maxX, maxY };
 }
 
-function imageFileName() {
+function exportFileName(ext) {
   const raw = (state.nodes.root && state.nodes.root.text) || "mindmap";
   const safe = raw
     .normalize("NFKC")
     .replace(/[^\p{L}\p{N}._-]+/gu, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-  return `${safe || "mindmap"}.png`;
+  return `${safe || "mindmap"}.${ext}`;
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function bytesFromString(text) {
+  return new TextEncoder().encode(text);
+}
+
+function concatBytes(chunks) {
+  let total = 0;
+  for (const chunk of chunks) total += chunk.length;
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return out;
+}
+
+function pdfFromJpeg(jpeg, width, height) {
+  const w = Math.max(1, Math.round(width));
+  const h = Math.max(1, Math.round(height));
+  const content = bytesFromString(`q ${w} 0 0 ${h} 0 0 cm /Im0 Do Q\n`);
+  const objects = [
+    bytesFromString("<< /Type /Catalog /Pages 2 0 R >>"),
+    bytesFromString("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
+    bytesFromString(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`),
+    concatBytes([
+      bytesFromString(`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`),
+      jpeg,
+      bytesFromString("\nendstream"),
+    ]),
+    concatBytes([
+      bytesFromString(`<< /Length ${content.length} >>\nstream\n`),
+      content,
+      bytesFromString("\nendstream"),
+    ]),
+  ];
+  const parts = [bytesFromString("%PDF-1.4\n%\x80\x81\x82\x83\n")];
+  const offsets = [0];
+  let pos = parts[0].length;
+  objects.forEach((body, index) => {
+    offsets[index + 1] = pos;
+    const head = bytesFromString(`${index + 1} 0 obj\n`);
+    const tail = bytesFromString("\nendobj\n");
+    parts.push(head, body, tail);
+    pos += head.length + body.length + tail.length;
+  });
+  const xrefStart = pos;
+  let xref = "xref\n0 6\n0000000000 65535 f \n";
+  for (let i = 1; i <= 5; i += 1) {
+    xref += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+  }
+  parts.push(bytesFromString(xref));
+  parts.push(bytesFromString(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`));
+  return concatBytes(parts);
 }
 
 function renderMapCanvas() {
@@ -1385,21 +1505,26 @@ function renderMapCanvas() {
 
 function downloadImage() {
   const canvas = renderMapCanvas();
-  const name = imageFileName();
+  canvas.toBlob((blob) => {
+    if (blob) downloadBlob(blob, exportFileName("png"));
+  }, "image/png");
+}
+
+function downloadPdf() {
+  const canvas = renderMapCanvas();
   canvas.toBlob((blob) => {
     if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, "image/png");
+    blob.arrayBuffer().then((buffer) => {
+      const pdf = pdfFromJpeg(new Uint8Array(buffer), canvas.width, canvas.height);
+      downloadBlob(new Blob([pdf], { type: "application/pdf" }), exportFileName("pdf"));
+    });
+  }, "image/jpeg", 0.92);
 }
 
 const Mindmap = {
   getDocument: mindmapDocument,
   downloadImage,
+  downloadPdf,
   setDocument(doc) {
     assertMindmapDocument(doc);
     state.nodes = JSON.parse(JSON.stringify(doc.nodes));

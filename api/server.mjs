@@ -11,6 +11,9 @@
  *   GET  /api/icons/gen/<id>     -> PNG der generierten Icons
  *   POST /api/icons/assign       { targets:[{id,text}], allowGenerate? } -> { assignments, created, model }
  *
+ * Verzaubern (grafische Mindmap-Illustration):
+ *   POST /api/enchant  { image (data-URL), tree?, background?, title? } -> { image (data-URL), model }
+ *
  * Galerie (Community-Mindmaps, jede Karte eine JSON-Datei unter DATA_DIR):
  *   GET  /api/maps        -> { maps: [{ id, title, nodeCount, publishedAt }] }
  *   GET  /api/maps/<id>   -> { id, title, nodeCount, publishedAt, document }
@@ -51,6 +54,11 @@ const ICON_REF_RE = /^(lucide|gen):[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const GEN_ID_RE = /^[a-z0-9]{8,24}$/;
 
 const MAX_BODY_BYTES = 256 * 1024;
+const MAX_ENCHANT_BODY_BYTES = 3 * 1024 * 1024;
+const RATE_ENCHANT_ANON_MAX = 2;
+const RATE_ENCHANT_AUTH_MAX = 8;
+const MAX_ENCHANT_IMAGE_CHARS = 2.5 * 1024 * 1024;
+const MAX_ENCHANT_TREE_NODES = 120;
 const MAX_TREE_NODES = 600;
 const MAX_INSTRUCTION_CHARS = 2000;
 const MAX_HISTORY_ITEMS = 6;
@@ -100,13 +108,13 @@ function clientIp(req) {
   return req.socket.remoteAddress || "unknown";
 }
 
-function readBody(req) {
+function readBody(req, maxBytes = MAX_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on("data", (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         reject(new Error("body too large"));
         req.destroy();
         return;
@@ -902,7 +910,7 @@ function catalogForPrompt(limit = 160) {
     }));
 }
 
-async function callOpenRouterImage(prompt, clientAbort) {
+async function callOpenRouterImage(prompt, clientAbort, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
   if (clientAbort) {
@@ -910,26 +918,30 @@ async function callOpenRouterImage(prompt, clientAbort) {
     else clientAbort.addEventListener("abort", () => controller.abort(), { once: true });
   }
   try {
+    const body = {
+      model: MODEL_IMAGE,
+      prompt,
+      aspect_ratio: options.aspectRatio || "1:1",
+      output_format: options.outputFormat || "png",
+    };
+    if (Array.isArray(options.inputReferences) && options.inputReferences.length) {
+      body.input_references = options.inputReferences.slice(0, 8);
+    }
     const res = await fetch("https://openrouter.ai/api/v1/images", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://mindmap.orga-hero.com",
-        "X-Title": "Mindmap Icons",
+        "X-Title": "Mindmap",
       },
-      body: JSON.stringify({
-        model: MODEL_IMAGE,
-        prompt,
-        aspect_ratio: "1:1",
-        output_format: "png",
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
       const err = new Error(`openrouter image ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
-      err.status = res.status === 429 ? 429 : 502;
+      err.status = res.status === 429 ? 429 : res.status === 402 ? 402 : 502;
       throw err;
     }
     const data = await res.json();
@@ -938,6 +950,163 @@ async function callOpenRouterImage(prompt, clientAbort) {
     return Buffer.from(b64, "base64");
   } finally {
     clearTimeout(timer);
+  }
+}
+
+function treeOutline(nodes, limit = MAX_ENCHANT_TREE_NODES) {
+  if (!Array.isArray(nodes) || !nodes.length) return "";
+  const byParent = new Map();
+  for (const node of nodes.slice(0, limit)) {
+    if (!node || typeof node.id !== "string") continue;
+    const parent = node.parentId || null;
+    if (!byParent.has(parent)) byParent.set(parent, []);
+    byParent.get(parent).push(node);
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  const lines = [];
+  const walk = (parentId, depth) => {
+    const kids = byParent.get(parentId) || [];
+    for (const node of kids) {
+      const text = String(node.text || "").replace(/\s+/g, " ").trim().slice(0, 80);
+      if (!text) continue;
+      lines.push(`${"  ".repeat(depth)}- ${text}`);
+      if (lines.length >= limit) return;
+      walk(node.id, depth + 1);
+      if (lines.length >= limit) return;
+    }
+  };
+  const root = nodes.find((n) => n && n.id === "root") || nodes[0];
+  if (root) {
+    lines.push(`- ${String(root.text || "Mindmap").replace(/\s+/g, " ").trim().slice(0, 80)}`);
+    walk(root.id, 1);
+  } else {
+    walk(null, 0);
+  }
+  return lines.join("\n");
+}
+
+function enchantPrompt({ title, outline, background }) {
+  const topic = title || "Mindmap";
+  const bg = background
+    ? "Add a tasteful atmospheric background that fits the topic (soft illustration, subtle texture or scenic mood). Keep all text clearly readable; do not bury labels in busy areas."
+    : "Use a clean plain or softly gradient paper-like background without scenery. No decorative wallpaper, no photo backdrop — focus on the diagram itself.";
+  return [
+    "You are redesigning a mind map into a polished graphic illustration.",
+    "A reference image of the current interactive mind map is attached — preserve its structure, hierarchy, node labels, and relative layout.",
+    "Improve visual craft: refined typography, elegant node shapes, harmonious colors, smooth connectors, balanced spacing, professional poster quality.",
+    "Keep EVERY label text accurate and legible in German as given. Do not invent new branches or drop existing ones.",
+    "No watermarks, no UI chrome, no browser window, no toolbars, no cursor.",
+    bg,
+    `Central topic: ${topic}.`,
+    outline ? `Structure (indent = hierarchy):\n${outline}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function parseDataUrlImage(dataUrl) {
+  if (typeof dataUrl !== "string" || dataUrl.length > MAX_ENCHANT_IMAGE_CHARS) return null;
+  const match = /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUrl.trim());
+  if (!match) return null;
+  const mediaType = match[1].toLowerCase() === "image/jpg" ? "image/jpeg" : match[1].toLowerCase();
+  const b64 = match[2].replace(/\s+/g, "");
+  if (!b64 || b64.length > MAX_ENCHANT_IMAGE_CHARS) return null;
+  return { mediaType, dataUrl: `data:${mediaType};base64,${b64}` };
+}
+
+function aspectFromSize(width, height) {
+  const w = Number(width);
+  const h = Number(height);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return "16:9";
+  const ratio = w / h;
+  if (ratio > 1.7) return "16:9";
+  if (ratio < 0.6) return "9:16";
+  if (ratio > 1.25) return "4:3";
+  if (ratio < 0.8) return "3:4";
+  return "1:1";
+}
+
+async function handleEnchant(req, res) {
+  const ip = clientIp(req);
+  const authed = verifyBasicAuth(req.headers.authorization);
+  const tier = authed ? "auth" : "anon";
+  if (!rateOk(`enchant:${tier}:${ip}`, authed ? RATE_ENCHANT_AUTH_MAX : RATE_ENCHANT_ANON_MAX, RATE_ANON_WINDOW_MS)) {
+    sendJson(res, 429, { error: "Too many requests", retryAfterSeconds: 300 });
+    return;
+  }
+  if (!OPENROUTER_API_KEY) {
+    sendJson(res, 503, { error: "API-Key nicht konfiguriert" });
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(await readBody(req, MAX_ENCHANT_BODY_BYTES));
+  } catch (err) {
+    sendJson(res, 400, { error: err.message === "body too large" ? "Bild zu groß (max. ca. 2,5 MB)." : "Ungültiger Request-Body (JSON erwartet)" });
+    return;
+  }
+
+  const image = parseDataUrlImage(parsed.image);
+  if (!image) {
+    sendJson(res, 400, { error: "image (data-URL PNG/JPEG/WebP) wird benötigt" });
+    return;
+  }
+  const background = parsed.background !== false;
+  const title = str(parsed.title, MAX_TITLE_CHARS) || "Mindmap";
+  const tree = Array.isArray(parsed.tree) ? parsed.tree.slice(0, MAX_ENCHANT_TREE_NODES) : [];
+  const outline = treeOutline(tree);
+  const aspectRatio = aspectFromSize(parsed.width, parsed.height);
+  const prompt = enchantPrompt({ title, outline, background });
+
+  const clientAbort = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) clientAbort.abort();
+  });
+
+  try {
+    holdOpen(res);
+    const bytes = await callOpenRouterImage(prompt, clientAbort.signal, {
+      aspectRatio,
+      outputFormat: "png",
+      inputReferences: [
+        {
+          type: "image_url",
+          image_url: { url: image.dataUrl },
+        },
+      ],
+    });
+    const out = `data:image/png;base64,${bytes.toString("base64")}`;
+    log(ip, tier, MODEL_IMAGE, "enchant", background ? "bg" : "plain", `bytes=${bytes.length}`);
+    sendJson(res, 200, { image: out, model: MODEL_IMAGE, background });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      if (clientAbort.signal.aborted || res.writableEnded) {
+        if (!res.writableEnded) {
+          try {
+            res.end();
+          } catch {
+            /* closed */
+          }
+        }
+        return;
+      }
+      sendJson(res, 504, { error: "Verzaubern hat zu lange gebraucht." });
+      return;
+    }
+    log("ERROR enchant", err.message);
+    const friendly =
+      err.status === 429
+        ? "Rate-Limit beim Bildmodell. Bitte später erneut versuchen."
+        : err.status === 402 || /402|Insufficient credits|credits/i.test(err.message)
+          ? "Image-Gen: OpenRouter-Guthaben fehlt oder ist aufgebraucht."
+          : "Verzaubern fehlgeschlagen. Bitte gleich nochmal versuchen.";
+    sendJson(res, err.status === 402 ? 402 : err.status || 502, {
+      error: friendly,
+      detail: err.message.slice(0, 200),
+    });
   }
 }
 
@@ -1147,6 +1316,13 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === "POST" && url === "/api/icons/assign") {
     handleAssignIcons(req, res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  if (req.method === "POST" && url === "/api/enchant") {
+    handleEnchant(req, res).catch((err) => {
       log("FATAL", err);
       if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
     });

@@ -1,6 +1,13 @@
 ---
-zuletztAktualisiert: "2026-10-04T00:56:19+02:00"
+zuletztAktualisiert: "2026-10-04T01:11:26+02:00"
 ---
+
+## Verzaubern-Button (2026-10-04)
+
+- **Erledigt:** Button **Verzaubern** in der Kopfleiste. Dialog: mit/ohne atmosphärischen Hintergrund. Client sendet Referenzbild (JPEG) + Hierarchie-Text an `POST /api/enchant`; OpenRouter-Bildmodell liefert Illustration; Vorschau + PNG-Download.
+- **Code:** `index.html`, `css/app.css`, `js/app.js`, `api/server.mjs`, `README.md`.
+- **Deploy:** Images neu bauen.
+- **Manuell:** Editor → Verzaubern → beide Hintergrund-Optionen; bei fehlendem OpenRouter-Guthaben klarer Fehlerhinweis.
 
 ## Scope Kinder + Icons/Image-Gen (2026-10-04)
 
@@ -59,11 +66,3 @@ zuletztAktualisiert: "2026-10-04T00:56:19+02:00"
 - **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet. Im selben Commit wie der übrige Chat-Stand.
 - **Code:** `js/app.js`, `js/chat.js`, `api/server.mjs`, `schema/mindmap.ops.json`, `index.html`, `README.md`.
 
-
-
-## Chat-Modell (2026-10-03)
-
-- **Erledigt:** Öffentlicher Chat lief auf `deepseek/deepseek-chat-v3.1:free`. OpenRouter antwortet darauf mit 404 (Gratis-Slug weg). Öffentliches Modell ist jetzt `deepseek/deepseek-chat-v3.1`. Live-Test `POST /api/chat` → 200, Op `add` Wetter.
-- **Code:** `api/server.mjs`, `.env.example`, `README.md`, `mindmap/.env`, `docker-compose.override.yml`. Container `mindmap-api` neu erstellt, kein Image-Rebuild nötig.
-- **Deploy:** Env-Wechsel ist live. Modell-Slug liegt in diesem Commit.
-- **Manuell:** Im Editor Chat öffnen und einen Knoten anlegen lassen.

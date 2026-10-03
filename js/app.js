@@ -1795,6 +1795,136 @@ async function downloadImage() {
   }, "image/png");
 }
 
+function compactTreeForApi() {
+  return Object.values(state.nodes).map((node) => ({
+    id: node.id,
+    parentId: node.parentId || null,
+    text: node.text,
+    order: Number.isFinite(node.order) ? node.order : null,
+  }));
+}
+
+function canvasToJpegDataUrl(source, maxSide = 1600, quality = 0.72) {
+  const scale = Math.min(1, maxSide / Math.max(source.width, source.height, 1));
+  const w = Math.max(1, Math.round(source.width * scale));
+  const h = Math.max(1, Math.round(source.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f6f3ee";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(source, 0, 0, w, h);
+  return { dataUrl: canvas.toDataURL("image/jpeg", quality), width: w, height: h };
+}
+
+async function requestEnchantedMap({ background }) {
+  await preloadExportIcons();
+  const source = renderMapCanvas();
+  const packed = canvasToJpegDataUrl(source);
+  const res = await fetch("/api/enchant", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image: packed.dataUrl,
+      width: packed.width,
+      height: packed.height,
+      background: Boolean(background),
+      title: (state.nodes.root && state.nodes.root.text) || "Mindmap",
+      tree: compactTreeForApi(),
+    }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || data.error) {
+    throw new Error(data && data.error ? data.error : `Serverfehler (${res.status})`);
+  }
+  if (typeof data.image !== "string" || !data.image.startsWith("data:image/")) {
+    throw new Error("Antwort enthielt kein Bild");
+  }
+  return data;
+}
+
+function bindEnchantUi() {
+  const dialog = document.getElementById("enchant-dialog");
+  const openBtn = document.getElementById("enchant-open");
+  const cancelBtn = document.getElementById("enchant-cancel");
+  const runBtn = document.getElementById("enchant-run");
+  const downloadBtn = document.getElementById("enchant-download");
+  const statusEl = document.getElementById("enchant-status");
+  const resultEl = document.getElementById("enchant-result");
+  const preview = document.getElementById("enchant-preview");
+  if (!dialog || !openBtn || !runBtn) return;
+
+  let lastImage = null;
+  let busy = false;
+
+  function setOpen(open) {
+    dialog.hidden = !open;
+    if (open) {
+      statusEl.hidden = true;
+      statusEl.textContent = "";
+      statusEl.classList.remove("error");
+    }
+  }
+
+  function setBusy(next) {
+    busy = next;
+    runBtn.disabled = next;
+    openBtn.disabled = next;
+    runBtn.textContent = next ? "Verzaubert …" : "Verzaubern";
+  }
+
+  openBtn.addEventListener("click", () => setOpen(true));
+  cancelBtn.addEventListener("click", () => {
+    if (!busy) setOpen(false);
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog && !busy) setOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !dialog.hidden && !busy) setOpen(false);
+  });
+
+  downloadBtn.addEventListener("click", () => {
+    if (!lastImage) return;
+    const name = exportFileName("png").replace(/\.png$/i, "-verzaubert.png");
+    const link = document.createElement("a");
+    link.href = lastImage;
+    link.download = name;
+    link.click();
+  });
+
+  runBtn.addEventListener("click", async () => {
+    if (busy) return;
+    const bgInput = dialog.querySelector('input[name="enchant-bg"]:checked');
+    const background = !bgInput || bgInput.value !== "0";
+    setBusy(true);
+    statusEl.hidden = false;
+    statusEl.classList.remove("error");
+    statusEl.textContent = "Bildmodell arbeitet an der Illustration …";
+    resultEl.hidden = true;
+    downloadBtn.hidden = true;
+    lastImage = null;
+    try {
+      const data = await requestEnchantedMap({ background });
+      lastImage = data.image;
+      preview.src = data.image;
+      resultEl.hidden = false;
+      downloadBtn.hidden = false;
+      statusEl.textContent = background
+        ? "Fertig — mit atmosphärischem Hintergrund."
+        : "Fertig — auf klarer Fläche.";
+      showAppToast("Verzauberte Mindmap ist bereit");
+    } catch (err) {
+      statusEl.classList.add("error");
+      statusEl.textContent = err && err.message ? err.message : "Verzaubern fehlgeschlagen";
+      showAppToast(statusEl.textContent);
+    } finally {
+      setBusy(false);
+    }
+  });
+}
+
 async function downloadPdf() {
   await preloadExportIcons();
   const canvas = renderMapCanvas();
@@ -1927,6 +2057,8 @@ const Mindmap = {
 };
 
 window.Mindmap = Mindmap;
+
+bindEnchantUi();
 
 const iconsAiButton = document.getElementById("style-icons-ai");
 if (iconsAiButton) {

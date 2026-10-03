@@ -65,6 +65,10 @@ Knoten können ein optionales Feld `icon` tragen: `lucide:<name>` (Pack unter `i
 - Chat-Op `{"op":"icon","id":"…","icon":"lucide:leaf"|"auto"|null}` — `auto` lässt den Server wählen/erzeugen.
 - `GET /api/icons` listet Katalog + generierten Pool; `GET /api/icons/gen/<id>` liefert PNG.
 
+## Verzaubern
+
+Button **Verzaubern** in der Kopfleiste: die aktuelle Karte wird als Referenzbild plus Text-Hierarchie an `POST /api/enchant` geschickt. Das OpenRouter-Bildmodell (`OPENROUTER_MODEL_IMAGE`) liefert eine grafisch ausgearbeitete Illustration — wahlweise **mit** oder **ohne** atmosphärischen Hintergrund. Vorschau im Dialog, Speichern als PNG.
+
 ## Chat-Assistent (OpenRouter)
 
 Unten rechts öffnet der funkelnde Assistenten-Knopf ein Panel. Der Assistent ändert die Karte auf Zuruf, z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.

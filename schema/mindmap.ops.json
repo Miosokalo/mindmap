@@ -1,13 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Mindmap Chat-Ops",
-  "description": "Antwortformat des Chat-Assistenten (api/server.mjs → OpenRouter): ein Objekt { reply, ops }. ops werden von js/chat.js in dieser Reihenfolge ausgeführt.",
+  "description": "Antwortformat des Chat-Assistenten (api/server.mjs → OpenRouter): ein Objekt { reply, ops }. Bei mode=review zusätzlich needsCorrection und reason. ops werden von js/chat.js in dieser Reihenfolge ausgeführt.",
   "type": "object",
   "required": ["reply", "ops"],
   "properties": {
     "reply": {
       "type": "string",
       "description": "Kurze Rückmeldung auf Deutsch (max. 2 Sätze).",
+      "maxLength": 600
+    },
+    "needsCorrection": {
+      "type": "boolean",
+      "description": "Nur bei mode=review: true, wenn Korrektur-Ops übernommen werden sollen (nach Nutzer-Bestätigung)."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Nur bei mode=review: kurze Begründung für das Bestätigungs-Popup.",
       "maxLength": 600
     },
     "ops": {
@@ -68,9 +77,28 @@
                 "properties": {
                   "color": { "enum": ["color", "mono"] },
                   "line": { "enum": ["curve", "straight", "elbow"] },
+                  "dash": { "enum": ["solid", "dashed", "dotted", "dashdot"] },
+                  "shape": { "enum": ["round", "rect", "pill", "ellipse", "diamond"] },
                   "nodes": { "enum": ["mixed", "filled", "outline", "text"] },
                   "layout": { "enum": ["horizontal", "vertical", "around", "radial", "mixed"] }
                 }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "id", "icon"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "const": "icon" },
+              "id": { "$ref": "#/$defs/nodeId" },
+              "icon": {
+                "description": "lucide:<name>, gen:<id>, auto (Server wählt/erzeugt), oder null zum Entfernen.",
+                "oneOf": [
+                  { "type": "string", "pattern": "^(lucide|gen):[A-Za-z0-9][A-Za-z0-9_-]{0,63}$" },
+                  { "const": "auto" },
+                  { "type": "null" }
+                ]
               }
             }
           },
@@ -88,13 +116,13 @@
   "$defs": {
     "nodeId": {
       "type": "string",
-      "maxLength": 24,
+      "maxLength": 32,
       "description": "Id eines vorhandenen Knotens oder ein ref aus derselben Antwort. Neue Knoten bekommen ihre echte Id im Browser."
     },
     "ref": {
       "type": "string",
-      "maxLength": 16,
-      "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$",
+      "maxLength": 32,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$",
       "description": "Kurzname nur für diese Antwort, damit spätere Ops den neuen Knoten als Eltern nutzen können."
     }
   }

@@ -24,8 +24,17 @@ let anchorEdgeId = null;
 let hoverEdgeId = null;
 let confirmDeleteId = null;
 
+const NODE_SHAPE_VALUES = ["round", "rect", "pill", "ellipse", "diamond"];
+const LINE_DASH_VALUES = ["solid", "dashed", "dotted", "dashdot"];
+const LINE_DASHARRAY = {
+  solid: "",
+  dashed: "7 5",
+  dotted: "0.5 4.5",
+  dashdot: "8 4 1.5 4",
+};
+
 function defaultStyle() {
-  return { color: "color", line: "curve", nodes: "mixed", layout: "around" };
+  return { color: "color", line: "curve", dash: "solid", shape: "round", nodes: "mixed", layout: "around" };
 }
 
 function withStyle(parsed) {
@@ -33,6 +42,8 @@ function withStyle(parsed) {
   parsed.style = {
     color: style.color === "mono" ? "mono" : "color",
     line: style.line === "straight" || style.line === "elbow" ? style.line : "curve",
+    dash: LINE_DASH_VALUES.includes(style.dash) ? style.dash : "solid",
+    shape: NODE_SHAPE_VALUES.includes(style.shape) ? style.shape : "round",
     nodes: ["filled", "outline", "text"].includes(style.nodes) ? style.nodes : "mixed",
     layout: ["horizontal", "vertical", "around", "mixed", "radial"].includes(style.layout) ? style.layout : "around",
   };
@@ -56,7 +67,7 @@ function loadState() {
     const parsed = JSON.parse(raw);
     if (!parsed.nodes || !parsed.nodes.root) return freshState();
     const styled = withStyle(parsed);
-    styled.scope = parsed.scope === "subtree" ? "subtree" : "node";
+    styled.scope = parseScope(parsed.scope);
     styled.showAnchors = parsed.showAnchors !== false;
     if (styled.mapVersion !== MAP_VERSION) {
       styled.mapVersion = MAP_VERSION;
@@ -89,11 +100,52 @@ function freshState() {
   return state;
 }
 
-function textWidth(text, branch) {
+function shapePad(node, branch) {
+  const shape = effectiveShape(node);
+  const wide = shape === "diamond" ? 22 : shape === "ellipse" ? 18 : shape === "pill" ? 14 : 10;
+  const tall = shape === "diamond" ? 10 : shape === "ellipse" ? 8 : 5;
+  const leafX = shape === "diamond" ? 14 : shape === "ellipse" ? 12 : shape === "pill" ? 8 : 2;
+  const leafY = shape === "diamond" ? 6 : shape === "ellipse" ? 4 : shape === "pill" ? 2 : 1;
+  return branch ? { x: wide, y: tall } : { x: leafX, y: leafY };
+}
+
+const ICON_REF_RE = /^(lucide|gen):[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const ICON_SIZE = { branch: 16, leaf: 14, gap: 6 };
+
+function parseIconRef(value) {
+  if (typeof value !== "string") return null;
+  const icon = value.trim();
+  return ICON_REF_RE.test(icon) ? icon : null;
+}
+
+function iconUrl(icon) {
+  const ref = parseIconRef(icon);
+  if (!ref) return null;
+  if (ref.startsWith("lucide:")) return `/icons/lucide/${ref.slice(7)}.svg`;
+  return `/api/icons/gen/${ref.slice(4)}`;
+}
+
+function textWidth(text, branch, node) {
   const canvas = textWidth.canvas || (textWidth.canvas = document.createElement("canvas"));
   const ctx = canvas.getContext("2d");
   ctx.font = `${branch ? "600 " : "500 "}13px "Segoe UI", "Helvetica Neue", sans-serif`;
-  return ctx.measureText(text).width + (branch ? 22 : 6);
+  const pad = shapePad(node, branch);
+  let width = ctx.measureText(text).width + pad.x * 2 + 2;
+  if (node && parseIconRef(node.icon)) {
+    width += (branch ? ICON_SIZE.branch : ICON_SIZE.leaf) + ICON_SIZE.gap;
+  }
+  return width;
+}
+
+function showAppToast(text) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(showAppToast.timer);
+  showAppToast.timer = setTimeout(() => {
+    el.hidden = true;
+  }, 3200);
 }
 
 function saveState() {
@@ -173,10 +225,28 @@ function renderNodes() {
     if (node.id === state.selectedId) el.classList.add("selected");
     el.style.left = `${node.x}px`;
     el.style.top = `${node.y}px`;
+    const shape = effectiveShape(node);
+    const pad = shapePad(node, !leaf || node.id === "root");
+    el.classList.add(`shape-${shape}`);
+    el.style.padding = `${pad.y}px ${pad.x}px`;
+    el.style.borderRadius = { round: "7px", rect: "0", pill: "999px", ellipse: "50%", diamond: "0" }[shape] || "7px";
     el.style.color = look.ink;
-    el.style.background = look.fill;
-    el.style.borderColor = look.stroke;
+    el.style.background = shape === "diamond" ? "transparent" : look.fill;
+    el.style.borderColor = shape === "diamond" ? "transparent" : look.stroke;
     el.dataset.id = node.id;
+    if (shape === "diamond") el.append(nodeFrame(shape, look));
+
+    const iconSrc = iconUrl(node.icon);
+    if (iconSrc) {
+      el.classList.add("has-icon");
+      const img = document.createElement("img");
+      img.className = "node-icon";
+      img.src = iconSrc;
+      img.alt = "";
+      img.draggable = false;
+      img.loading = "lazy";
+      el.append(img);
+    }
 
     const text = document.createElement("div");
     text.className = "node-text";
@@ -200,6 +270,29 @@ function effectiveColorMode(node) {
 
 function effectiveLine(node) {
   return node && (node.line === "curve" || node.line === "straight" || node.line === "elbow") ? node.line : state.style.line;
+}
+
+function effectiveDash(node) {
+  return node && LINE_DASH_VALUES.includes(node.dash) ? node.dash : state.style.dash || "solid";
+}
+
+function effectiveShape(node) {
+  return node && NODE_SHAPE_VALUES.includes(node.shape) ? node.shape : state.style.shape || "round";
+}
+
+function nodeFrame(shape, look) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "node-frame");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("preserveAspectRatio", "none");
+  const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  poly.setAttribute("points", shape === "diamond" ? "50,1 99,50 50,99 1,50" : "");
+  poly.setAttribute("fill", look.fill);
+  poly.setAttribute("stroke", look.stroke);
+  poly.setAttribute("stroke-width", "1.5");
+  poly.setAttribute("vector-effect", "non-scaling-stroke");
+  svg.append(poly);
+  return svg;
 }
 
 function effectiveLook(node) {
@@ -763,8 +856,10 @@ function renderEdges() {
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", effectiveColorMode(parent) === "mono" ? "#2f2f2f" : palette.stroke);
     path.setAttribute("stroke-width", "2.25");
-    path.setAttribute("stroke-linecap", "butt");
+    const dash = effectiveDash(parent);
+    path.setAttribute("stroke-linecap", dash === "dotted" ? "round" : "butt");
     path.setAttribute("stroke-linejoin", "round");
+    if (LINE_DASHARRAY[dash]) path.setAttribute("stroke-dasharray", LINE_DASHARRAY[dash]);
     path.style.pointerEvents = "none";
     fragment.append(path);
     if (!geo.start) continue;
@@ -934,6 +1029,8 @@ function addChild(parentId, options) {
   };
   if (parent.colorMode) state.nodes[id].colorMode = parent.colorMode;
   if (parent.line) state.nodes[id].line = parent.line;
+  if (parent.dash) state.nodes[id].dash = parent.dash;
+  if (parent.shape) state.nodes[id].shape = parent.shape;
   if (parent.look) state.nodes[id].look = parent.look;
   if (Number.isFinite(parent.reach)) state.nodes[id].reach = parent.reach;
   state.selectedId = id;
@@ -1221,10 +1318,20 @@ function syncArrangementControl() {
   frame.title = name;
 }
 
+function parseScope(value) {
+  if (value === "subtree" || value === "children") return value;
+  return "node";
+}
+
+function scopeIsDeep() {
+  return state.scope === "subtree";
+}
+
 function scopedNodes(id) {
   const node = state.nodes[id];
   if (!node) return [];
-  if (state.scope !== "subtree") return [node];
+  if (state.scope === "node") return [node];
+  if (state.scope === "children") return [node, ...childrenOf(id)];
   const list = [];
   const walk = (nodeId) => {
     const current = state.nodes[nodeId];
@@ -1255,7 +1362,7 @@ function setNodeFlow(node, flow) {
 }
 
 function applyStyleKey(nodeId, key, value) {
-  const field = { color: "colorMode", line: "line", nodes: "look" }[key];
+  const field = { color: "colorMode", line: "line", dash: "dash", shape: "shape", nodes: "look" }[key];
   if (!field) return;
   for (const node of scopedNodes(nodeId)) node[field] = value;
 }
@@ -1265,7 +1372,7 @@ function applyReachSetting(nodeId, reach) {
   if (!node || !Number.isFinite(reach)) return;
   const value = Math.min(160, Math.max(0, reach));
   for (const target of scopedNodes(nodeId)) target.reach = value;
-  if (state.scope === "subtree") relayoutNodes(state.nodes, state.style, node.id, textWidth);
+  if (scopeIsDeep()) relayoutNodes(state.nodes, state.style, node.id, textWidth);
   else relayoutOutgoing(state.nodes, node.id, state.style, textWidth);
 }
 
@@ -1273,7 +1380,7 @@ function applyArrangement(nodeId, flow) {
   const node = state.nodes[nodeId];
   if (!node) return;
   for (const target of scopedNodes(nodeId)) setNodeFlow(target, flow);
-  if (state.scope === "subtree") relayoutCollided(state.nodes, state.style, node.id);
+  if (scopeIsDeep()) relayoutCollided(state.nodes, state.style, node.id);
   else {
     relayoutOutgoing(state.nodes, node.id, state.style, textWidth);
     if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
@@ -1289,9 +1396,11 @@ function syncStyleControls() {
   const values = {
     "style-color": effectiveColorMode(node),
     "style-line": effectiveLine(node),
+    "style-dash": effectiveDash(node),
+    "style-shape": effectiveShape(node),
     "style-reach": String(layoutReach(node)),
     "style-nodes": effectiveLook(node),
-    "style-scope": state.scope === "subtree" ? "subtree" : "node",
+    "style-scope": parseScope(state.scope),
   };
   for (const [id, value] of Object.entries(values)) {
     const control = document.getElementById(id);
@@ -1306,6 +1415,8 @@ const styleTarget = {};
 for (const [id, key] of [
   ["style-color", "color"],
   ["style-line", "line"],
+  ["style-dash", "dash"],
+  ["style-shape", "shape"],
   ["style-nodes", "nodes"],
 ]) {
   const control = document.getElementById(id);
@@ -1316,6 +1427,16 @@ for (const [id, key] of [
     const targetId = styleTarget[key] || state.selectedId || "root";
     styleTarget[key] = null;
     applyStyleKey(targetId, key, control.value);
+    if (key === "shape") {
+      const node = state.nodes[targetId];
+      if (node) {
+        if (scopeIsDeep()) relayoutCollided(state.nodes, state.style, node.id);
+        else {
+          relayoutOutgoing(state.nodes, node.id, state.style, textWidth);
+          if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
+        }
+      }
+    }
     if (key === "line" && typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
     saveState();
     render();
@@ -1344,7 +1465,7 @@ document.getElementById("show-anchors").addEventListener("change", (event) => {
 });
 
 document.getElementById("style-scope").addEventListener("change", (event) => {
-  state.scope = event.target.value === "subtree" ? "subtree" : "node";
+  state.scope = parseScope(event.target.value);
   saveState();
 });
 
@@ -1577,7 +1698,11 @@ function renderMapCanvas() {
     if (!d) continue;
     ctx.strokeStyle = pathEl.getAttribute("stroke") || "#2f2f2f";
     ctx.lineWidth = 2.25;
+    ctx.lineCap = pathEl.getAttribute("stroke-linecap") === "round" ? "round" : "butt";
+    const dash = (pathEl.getAttribute("stroke-dasharray") || "").trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    ctx.setLineDash(dash.length ? dash : []);
     ctx.stroke(new Path2D(d));
+    ctx.setLineDash([]);
   }
 
   for (const node of nodeList()) {
@@ -1586,16 +1711,28 @@ function renderMapCanvas() {
     const box = nodeBox(node);
     const w = box.right - box.left;
     const h = box.bottom - box.top;
-    const radius = Math.min(7, w / 2, h / 2);
-    if (look.fill !== "transparent") {
+    const frame = effectiveShape(node);
+    const trace = () => {
       ctx.beginPath();
-      ctx.roundRect(box.left, box.top, w, h, radius);
+      if (frame === "ellipse") ctx.ellipse(node.x, node.y, w / 2, h / 2, 0, 0, Math.PI * 2);
+      else if (frame === "diamond") {
+        ctx.moveTo(node.x, box.top);
+        ctx.lineTo(box.right, node.y);
+        ctx.lineTo(node.x, box.bottom);
+        ctx.lineTo(box.left, node.y);
+        ctx.closePath();
+      } else {
+        const radius = frame === "rect" ? 0 : frame === "pill" ? Math.min(w, h) / 2 : Math.min(7, w / 2, h / 2);
+        ctx.roundRect(box.left, box.top, w, h, radius);
+      }
+    };
+    if (look.fill !== "transparent") {
+      trace();
       ctx.fillStyle = look.fill;
       ctx.fill();
     }
     if (look.stroke !== "transparent") {
-      ctx.beginPath();
-      ctx.roundRect(box.left + 0.5, box.top + 0.5, Math.max(0, w - 1), Math.max(0, h - 1), radius);
+      trace();
       ctx.strokeStyle = look.stroke;
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -1604,20 +1741,62 @@ function renderMapCanvas() {
     ctx.font = `${leaf ? "500" : "600"} 13px "Segoe UI", "Helvetica Neue", sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(node.text, node.x, node.y);
+    const iconSrc = iconUrl(node.icon);
+    const iconPx = leaf ? ICON_SIZE.leaf : ICON_SIZE.branch;
+    if (iconSrc) {
+      const img = exportIconImages.get(iconSrc);
+      const textW = ctx.measureText(node.text).width;
+      const total = iconPx + ICON_SIZE.gap + textW;
+      const left = node.x - total / 2;
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, left, node.y - iconPx / 2, iconPx, iconPx);
+      }
+      ctx.textAlign = "left";
+      ctx.fillText(node.text, left + iconPx + ICON_SIZE.gap, node.y);
+    } else {
+      ctx.fillText(node.text, node.x, node.y);
+    }
   }
 
   return canvas;
 }
 
-function downloadImage() {
+const exportIconImages = new Map();
+
+function preloadExportIcons() {
+  const urls = new Set();
+  for (const node of nodeList()) {
+    const src = iconUrl(node.icon);
+    if (src) urls.add(src);
+  }
+  const jobs = [];
+  for (const src of urls) {
+    if (exportIconImages.has(src) && exportIconImages.get(src).complete) continue;
+    jobs.push(
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          exportIconImages.set(src, img);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = src;
+      }),
+    );
+  }
+  return Promise.all(jobs);
+}
+
+async function downloadImage() {
+  await preloadExportIcons();
   const canvas = renderMapCanvas();
   canvas.toBlob((blob) => {
     if (blob) downloadBlob(blob, exportFileName("png"));
   }, "image/png");
 }
 
-function downloadPdf() {
+async function downloadPdf() {
+  await preloadExportIcons();
   const canvas = renderMapCanvas();
   canvas.toBlob((blob) => {
     if (!blob) return;
@@ -1626,6 +1805,58 @@ function downloadPdf() {
       downloadBlob(new Blob([pdf], { type: "application/pdf" }), exportFileName("pdf"));
     });
   }, "image/jpeg", 0.92);
+}
+
+function applyNodeIcons(assignments) {
+  if (!Array.isArray(assignments)) return 0;
+  let count = 0;
+  for (const item of assignments) {
+    if (!item || typeof item.id !== "string") continue;
+    const node = state.nodes[item.id];
+    if (!node) continue;
+    if (item.icon === null || item.icon === "") {
+      delete node.icon;
+      count += 1;
+      continue;
+    }
+    const icon = parseIconRef(item.icon);
+    if (!icon) continue;
+    node.icon = icon;
+    node.w = textWidth(node.text, !!node.parentId, node);
+    count += 1;
+  }
+  if (count) {
+    relayoutCollided(state.nodes, state.style, "root");
+    state.centered = false;
+    centerIfNeeded();
+    saveState();
+    render();
+  }
+  return count;
+}
+
+async function assignIconsForScope(nodeId) {
+  const targets = scopedNodes(nodeId || state.selectedId || "root").map((node) => ({
+    id: node.id,
+    text: node.text,
+  }));
+  if (!targets.length) throw new Error("Kein Knoten im Bereich");
+  const res = await fetch("/api/icons/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ targets, allowGenerate: true }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || data.error) {
+    throw new Error(data && data.error ? data.error : `Serverfehler (${res.status})`);
+  }
+  const n = applyNodeIcons(data.assignments || []);
+  return {
+    n,
+    created: (data.created || []).length,
+    model: data.model,
+    warnings: Array.isArray(data.warnings) ? data.warnings : [],
+  };
 }
 
 const Mindmap = {
@@ -1681,9 +1912,43 @@ const Mindmap = {
   getStyle() {
     return { ...state.style };
   },
+  getScope() {
+    return parseScope(state.scope);
+  },
+  scopedNodeIds(nodeId) {
+    return scopedNodes(nodeId || state.selectedId || "root").map((node) => node.id);
+  },
+  applyIcons(assignments) {
+    return applyNodeIcons(assignments);
+  },
+  assignIcons(nodeId) {
+    return assignIconsForScope(nodeId);
+  },
 };
 
 window.Mindmap = Mindmap;
+
+const iconsAiButton = document.getElementById("style-icons-ai");
+if (iconsAiButton) {
+  iconsAiButton.addEventListener("click", async () => {
+    if (iconsAiButton.disabled) return;
+    iconsAiButton.disabled = true;
+    const prev = iconsAiButton.textContent;
+    iconsAiButton.textContent = "Icons …";
+    try {
+      const result = await assignIconsForScope(state.selectedId || "root");
+      const extra = result.created ? ` · ${result.created} neu erzeugt` : "";
+      if (result.n) showAppToast(`${result.n} Icons gesetzt${extra}`);
+      else if (result.warnings && result.warnings.length) showAppToast(result.warnings[0]);
+      else showAppToast("Keine passenden Icons gefunden");
+    } catch (err) {
+      showAppToast(err && err.message ? err.message : "Icons fehlgeschlagen");
+    } finally {
+      iconsAiButton.disabled = false;
+      iconsAiButton.textContent = prev;
+    }
+  });
+}
 
 if (typeof ResizeObserver === "function") {
   new ResizeObserver(() => {

@@ -2,8 +2,14 @@
  * Mindmap-API (Zero-Dependency, node:http).
  *
  * Chat:
- *   POST /api/chat  { document, instruction, history? } -> { reply, ops, model, authed }
- *   GET  /api/health -> { ok, modelPublic, modelAuth, keyConfigured }
+ *   POST /api/chat  { document, instruction, history?, mode? } -> { reply, ops, model, authed, mode, needsCorrection?, reason? }
+ *        mode "review": Qualitätskontrolle nach einer Änderung; Korrektur-Ops nur vorschlagen.
+ *   GET  /api/health -> { ok, modelPublic, modelAuth, keyConfigured, modelImage }
+ *
+ * Icons:
+ *   GET  /api/icons              -> { icons: [{ id, kind, label, tags, url }] }
+ *   GET  /api/icons/gen/<id>     -> PNG der generierten Icons
+ *   POST /api/icons/assign       { targets:[{id,text}], allowGenerate? } -> { assignments, created, model }
  *
  * Galerie (Community-Mindmaps, jede Karte eine JSON-Datei unter DATA_DIR):
  *   GET  /api/maps        -> { maps: [{ id, title, nodeCount, publishedAt }] }
@@ -27,6 +33,9 @@ const MODEL_AUTH = (process.env.OPENROUTER_MODEL_AUTH || "anthropic/claude-sonne
 const AUTH_USER = (process.env.MINDMAP_CHAT_AUTH_USER || "").trim();
 const AUTH_HASH = (process.env.MINDMAP_CHAT_AUTH_HASH || "").trim();
 const DATA_DIR = (process.env.DATA_DIR || "/data/maps").trim();
+const ICONS_DIR = (process.env.ICONS_DIR || "/data/icons").trim();
+const ICONS_CATALOG = (process.env.ICONS_CATALOG || join(process.cwd(), "icons-catalog.json")).trim();
+const MODEL_IMAGE = (process.env.OPENROUTER_MODEL_IMAGE || "black-forest-labs/flux.2-pro").trim();
 
 const RATE_ANON_MAX = 10;
 const RATE_ANON_WINDOW_MS = 5 * 60 * 1000;
@@ -34,6 +43,12 @@ const RATE_AUTH_MAX = 60;
 const RATE_AUTH_WINDOW_MS = 5 * 60 * 1000;
 const PUBLISH_MAX_PER_DAY = 3;
 const PUBLISH_WINDOW_MS = 24 * 60 * 60 * 1000;
+const RATE_ICON_ANON_MAX = 6;
+const RATE_ICON_AUTH_MAX = 30;
+const MAX_ASSIGN_TARGETS = 40;
+const MAX_GENERATE_PER_ASSIGN = 5;
+const ICON_REF_RE = /^(lucide|gen):[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const GEN_ID_RE = /^[a-z0-9]{8,24}$/;
 
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_TREE_NODES = 600;
@@ -57,12 +72,26 @@ function log(...args) {
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
+  if (res.headersSent) {
+    res.end(body);
+    return;
+  }
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
     "Cache-Control": "no-store",
   });
   res.end(body);
+}
+
+function holdOpen(res) {
+  if (res.headersSent || res.writableEnded) return;
+  res.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  if (typeof res.flushHeaders === "function") res.flushHeaders();
+  res.write("\n");
 }
 
 function clientIp(req) {
@@ -150,6 +179,12 @@ function str(value, max) {
   return s.slice(0, max);
 }
 
+function parseIconRef(value) {
+  if (typeof value !== "string") return null;
+  const icon = value.trim();
+  return ICON_REF_RE.test(icon) ? icon : null;
+}
+
 function compactTree(documentObj) {
   if (!documentObj || typeof documentObj !== "object" || !documentObj.nodes || typeof documentObj.nodes !== "object") {
     return null;
@@ -157,14 +192,17 @@ function compactTree(documentObj) {
   const out = [];
   for (const node of Object.values(documentObj.nodes)) {
     if (!node || typeof node.id !== "string") continue;
-    out.push({
+    const row = {
       id: node.id.slice(0, 24),
       parentId: typeof node.parentId === "string" ? node.parentId.slice(0, 24) : null,
       text: String(node.text || "").slice(0, NODE_TEXT_MAX),
       order: Number.isFinite(node.order) ? node.order : null,
       color: typeof node.color === "string" && NODE_COLORS.has(node.color) ? node.color : undefined,
       dir: ["n", "e", "s", "w"].includes(node.dir) ? node.dir : undefined,
-    });
+    };
+    const icon = parseIconRef(node.icon);
+    if (icon) row.icon = icon;
+    out.push(row);
     if (out.length >= MAX_TREE_NODES) break;
   }
   if (out.length === 0 || !out.some((n) => n.id === "root")) return null;
@@ -207,6 +245,10 @@ function sanitizeDocument(input) {
     if (["n", "e", "s", "w"].includes(node.dir)) clean.dir = node.dir;
     if (NODE_COLORS.has(node.color)) clean.color = node.color;
     if (["horizontal", "vertical", "around", "radial"].includes(node.flow)) clean.flow = node.flow;
+    if (["round", "rect", "pill", "ellipse", "diamond"].includes(node.shape)) clean.shape = node.shape;
+    if (["solid", "dashed", "dotted", "dashdot"].includes(node.dash)) clean.dash = node.dash;
+    const icon = parseIconRef(node.icon);
+    if (icon) clean.icon = icon;
     nodes[id] = clean;
     if (++count >= MAX_TREE_NODES) break;
   }
@@ -218,6 +260,8 @@ function sanitizeDocument(input) {
   const cleanStyle = {};
   if (["color", "mono"].includes(style.color)) cleanStyle.color = style.color;
   if (["curve", "straight", "elbow"].includes(style.line)) cleanStyle.line = style.line;
+  if (["solid", "dashed", "dotted", "dashdot"].includes(style.dash)) cleanStyle.dash = style.dash;
+  if (["round", "rect", "pill", "ellipse", "diamond"].includes(style.shape)) cleanStyle.shape = style.shape;
   if (["mixed", "filled", "outline", "text"].includes(style.nodes)) cleanStyle.nodes = style.nodes;
   if (["horizontal", "vertical", "around", "radial", "mixed"].includes(style.layout)) cleanStyle.layout = style.layout;
   return {
@@ -358,56 +402,92 @@ Der Nutzer beschreibt Änderungen an seiner Mindmap. Du antwortest IMMER und NUR
 {"reply":"<kurze Antwort auf Deutsch, höchstens 2 Sätze>","ops":[ ... ]}
 
 Mögliche Ops (werden in der Reihenfolge ausgeführt):
-- {"op":"add","parentId":"<id oder ref>","text":"<Stichwort>","ref":"<kurz, optional>"}
+- {"op":"add","parentId":"<id oder ref>","text":"<Stichwort>","ref":"<kurz, optional>","color":"gold|green|cyan|blue|orange"}
 - {"op":"rename","id":"<vorhandene id>","text":"<neuer Text>"}
 - {"op":"delete","id":"<vorhandene id, nie root>"}   (löscht nur diesen Knoten; direkte Kinder hängen danach an seinem Elternknoten)
 - {"op":"move","id":"<vorhandene id>","newParentId":"<id oder ref>"}
-- {"op":"style",...} und {"op":"relayout"} nur, wenn der Nutzer ausdrücklich Farbe, Linien oder Anordnung verlangt.
+- {"op":"style","style":{"line":"curve|straight|elbow","dash":"solid|dashed|dotted|dashdot","shape":"round|rect|pill|ellipse|diamond","layout":"horizontal|vertical|around|radial",...}} und {"op":"relayout"} nur, wenn der Nutzer ausdrücklich Farbe, Linien, Rahmen, Strich oder Anordnung verlangt. „Links-rechts“ = layout horizontal, „oben-unten“ = vertical, „rundherum“ = around. „Gestrichelt“ = dash dashed.
+- {"op":"icon","id":"<vorhandene id oder ref>","icon":"lucide:<name>|auto|null"} Icon setzen. lucide-Namen aus dem Katalog (z. B. leaf, sun, brain, car). "auto" lässt den Server ein passendes Icon wählen/erzeugen. null entfernt das Icon. Nur wenn der Nutzer Icons verlangt.
 
 Regeln für den Baum:
-- Neue Knoten bekommen keine echte id. Soll ein neuer Knoten später Eltern sein, setze "ref" (z. B. "a1", "a1s"). Kinder nutzen diese ref als parentId. Eltern-Op steht vor den Kindern. ref gilt nur in dieser Antwort.
+- Neue Knoten bekommen keine echte id. Soll ein neuer Knoten später Eltern sein, setze "ref" (kurz, z. B. "a1"). Kinder nutzen diese ref als parentId. Ein "id" am add ist keine Knoten-Id und zählt nur wie ref. Erfinde keine Ids wie "vincent_handlung". Umhängen nur mit move und einer id aus der Karte.
 - Benutze sonst nur ids aus der Karte. "root" ist die Wurzel. delete nie auf "root". Höchstens 50 Ops.
+- Hierarchie fachlich korrekt: Teil-von, Schritt-von oder Unterbegriff hängt als Kind, nie als Geschwister. Beispiel falsch: Thylakoide neben Chloroplasten. Richtig: Thylakoide und Stroma unter Chloroplasten. Beispiel falsch: CO₂-Fixierung neben Calvin-Zyklus. Richtig: CO₂-Fixierung unter Calvin-Zyklus.
+- Keine Doppelungen: denselben Begriff nicht zweimal (auch nicht unter anderem Namen) auf derselben Ebene oder als parallele Äste.
 - Tiefe: die Wurzel zählt nicht. Etwa 5 bis 7 Äste. Nicht alle gleich tief. Mindestens ein Ast reicht bis zur dritten Ebene (Ast → Stichwort → darunter noch ein Stichwort). Mindestens zwei Äste hören bei den direkten Stichworten auf, ohne weitere Stufe. Eine vierte Ebene nur selten und nur an einer Stelle. Nie tiefer als vier. Lieber wenige tiefe Stellen als überall dieselbe Tiefe.
-- Stichworte, ein bis vier Wörter. Dieselbe Ebene gleichartig (lauter Nomen oder lauter Fragen, nicht gemischt). Keine Sätze, keine Nummerierung, kein Ast "Sonstiges". Äste decken das Thema ab und wiederholen sich nicht.
+- Stichworte, ein bis vier Wörter. Dieselbe Ebene gleichartig (lauter Nomen oder lauter Fragen, nicht gemischt). Keine Sätze, keine Nummerierung, kein Ast "Sonstiges". Äste decken das Thema ab und wiederholen sich nicht. Fachlich korrekt und gängig benannt.
+- Neue thematische Karte (Wurzel war "Neues Thema"/leer oder Auftrag „erstelle Mindmap zu …“): Hauptäste unter root mit unterschiedlichen colors (gold, green, cyan, blue, orange abwechselnd). Kinder erben die Farbe; color nur an Hauptästen setzen.
 - Wurzel ist das Thema in zwei, drei Wörtern. Heißt sie "Neues Thema" oder "Neu", umbenennen. Kinder, die nur "Neu" heißen, löschen oder umbenennen, nicht weitere "Neu" daneben stellen.
-- Echte vorhandene Inhalte ergänzen, nicht die ganze Karte leeren. „Tiefer“ oder „erweitere“ hängt nur an zwei oder drei bestehenden Ästen je eine weitere Ebene an, etwa 6 bis 12 neue Stichworte. Der Rest bleibt stehen.
+- Echte vorhandene Inhalte ergänzen, nicht die ganze Karte leeren. „Tiefer“ oder „erweitere“ hängt nur an zwei oder drei bestehenden Ästen je eine weitere Ebene an, etwa 6 bis 12 neue Stichworte. Der Rest bleibt stehen. Bestehende flache Stichworte nicht durch parallele Überbegriffe verdoppeln — lieber darunter hängen oder umbenennen.
+- „Entferne“ löscht die genannten Knoten mit delete und der id aus der Liste. Nicht nur im reply behaupten.
+- Rückgängig gibt es nicht. Wünsche danach als delete, rename oder move ausführen. Nie „wiederhergestellt“ schreiben, wenn ops leer ist.
 - Unklares Thema: keine Ops, eine kurze Rückfrage im reply.
-- style und relayout weglassen, außer der Nutzer verlangt ausdrücklich Layout oder Farbe.
+- style und relayout weglassen, außer der Nutzer verlangt ausdrücklich Layout oder Farbe. Node-color an Hauptästen bei neuer Karte ist erlaubt und erwünscht.
+- Icons nur auf ausdrücklichen Wunsch. Bevorzugt lucide:<name> aus bekannten Lucide-Namen; bei unsicherem Motiv "auto". Nicht bei jeder neuen Karte automatisch Icons setzen.
 - Im reply knapp sagen, was du geändert hast.
 
 Beispiel. Karte: [{"id":"root","parentId":null,"text":"Neues Thema"}]. Auftrag: Mindmap zu Klimaschutz.
 {"reply":"Klimaschutz steht jetzt im Zentrum, mit fünf Ästen. Energie geht eine Stufe tiefer.","ops":[
   {"op":"rename","id":"root","text":"Klimaschutz"},
-  {"op":"add","parentId":"root","text":"Energie","ref":"a1"},
+  {"op":"add","parentId":"root","text":"Energie","ref":"a1","color":"gold"},
   {"op":"add","parentId":"a1","text":"Strom","ref":"a1s"},
   {"op":"add","parentId":"a1s","text":"Solar"},
   {"op":"add","parentId":"a1s","text":"Wind"},
   {"op":"add","parentId":"a1","text":"Wärme"},
-  {"op":"add","parentId":"root","text":"Verkehr","ref":"a2"},
+  {"op":"add","parentId":"root","text":"Verkehr","ref":"a2","color":"green"},
   {"op":"add","parentId":"a2","text":"Bahn"},
   {"op":"add","parentId":"a2","text":"Fahrrad"},
-  {"op":"add","parentId":"root","text":"Gebäude","ref":"a3"},
+  {"op":"add","parentId":"root","text":"Gebäude","ref":"a3","color":"cyan"},
   {"op":"add","parentId":"a3","text":"Dämmung"},
-  {"op":"add","parentId":"root","text":"Konsum","ref":"a4"},
+  {"op":"add","parentId":"root","text":"Konsum","ref":"a4","color":"blue"},
   {"op":"add","parentId":"a4","text":"Ernährung"},
-  {"op":"add","parentId":"root","text":"Politik","ref":"a5"},
+  {"op":"add","parentId":"root","text":"Politik","ref":"a5","color":"orange"},
   {"op":"add","parentId":"a5","text":"CO2-Preis"}
 ]}
 Verkehr, Gebäude, Konsum und Politik bleiben flach. Nur Energie geht über Strom zu Solar und Wind.`;
 
-function buildMessages(tree, instruction, history) {
-  const messages = [{ role: "system", content: SYSTEM_PROMPT }];
-  for (const item of history) messages.push({ role: item.role, content: item.content });
-  messages.push({
-    role: "user",
-    content: `Karte (Knoten als JSON-Liste):\n${JSON.stringify(tree)}\n\nAuftrag: ${instruction}`,
-  });
+const REVIEW_PROMPT = `Du bist Qualitätskontrolle für Mindmaps. Der Nutzer hat gerade eine Änderung erhalten; die aktuelle Karte liegt vor. Prüfe fachliche Korrektheit, Hierarchie und Doppelungen.
+
+Antworte IMMER und NUR mit einem JSON-Objekt, ohne Markdown:
+
+{"reply":"<ein Satz Bewertung auf Deutsch>","needsCorrection":true|false,"reason":"<kurz, warum Korrektur sinnvoll wäre; leer wenn false>","ops":[ ... ]}
+
+Ops wie beim Bearbeiten: add, rename, delete, move. Kein style/relayout in der Kontrolle.
+- needsCorrection nur true bei echten Fehlern: falsche Fakten, Teil-von als Geschwister, doppelte/redundante Stichworte, fehlender Kernbegriff zum Auftrag, Wurzel noch "Neues Thema".
+- Bei true MUSS ops mindestens eine Korrektur enthalten. Nur beschreiben ohne Ops ist verboten. Nutze vorhandene ids aus der Karte (move/rename/delete bevorzugt, add nur wenn nötig). Höchstens 20 Ops. Keine komplette Neuerstellung.
+- Bei false: ops []. reason "".
+- Nicht überfein korrigieren. Geschmack oder „noch mehr Details“ allein reicht nicht.
+- reply immer setzen. reason ist der Text für die Nachfrage an den Nutzer.
+
+Beispiel. Fehler: Thylakoide und Stroma liegen neben Chloroplasten statt darunter; Calvin-Zyklus und CO2-Fixierung liegen neben Dunkelreaktion.
+{"reply":"Hierarchie der Orte und der Dunkelreaktion war falsch; Korrektur vorgeschlagen.","needsCorrection":true,"reason":"Thylakoide und Stroma gehören unter Chloroplasten; Calvin-Zyklus unter Dunkelreaktion; CO₂-Fixierung unter den Calvin-Zyklus.","ops":[
+  {"op":"move","id":"c","newParentId":"b"},
+  {"op":"move","id":"d","newParentId":"b"},
+  {"op":"move","id":"g","newParentId":"f"},
+  {"op":"move","id":"h","newParentId":"g"}
+]}`;
+
+function buildMessages(tree, instruction, history, mode = "edit") {
+  const system = mode === "review" ? REVIEW_PROMPT : SYSTEM_PROMPT;
+  const messages = [{ role: "system", content: system }];
+  if (mode !== "review") {
+    for (const item of history) messages.push({ role: item.role, content: item.content });
+  }
+  const task =
+    mode === "review"
+      ? `Ursprünglicher Auftrag: ${instruction}\n\nAktuelle Karte (Knoten als JSON-Liste):\n${JSON.stringify(tree)}\n\nPrüfe die Karte und korrigiere nur echte Probleme.`
+      : `Karte (Knoten als JSON-Liste):\n${JSON.stringify(tree)}\n\nAuftrag: ${instruction}`;
+  messages.push({ role: "user", content: task });
   return messages;
 }
 
-async function callOpenRouter(model, messages) {
+async function callOpenRouter(model, messages, clientAbort) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
+  if (clientAbort) {
+    if (clientAbort.aborted) controller.abort();
+    else clientAbort.addEventListener("abort", () => controller.abort(), { once: true });
+  }
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -518,7 +598,18 @@ function extractReply(content, reasoning) {
   return fromContent || fromReasoning;
 }
 
-function sanitizeOps(rawOps) {
+const REF_RE = /^[A-Za-z][A-Za-z0-9_-]{0,31}$/;
+
+function addAlias(raw, knownIds) {
+  const candidates = [str(raw.ref, 32), str(raw.id, 32)];
+  for (const alias of candidates) {
+    if (!alias || alias === "root" || knownIds.has(alias) || !REF_RE.test(alias)) continue;
+    return alias;
+  }
+  return null;
+}
+
+function sanitizeOps(rawOps, knownIds = new Set()) {
   if (!Array.isArray(rawOps)) return [];
   const seenIds = new Set();
   const ops = [];
@@ -526,36 +617,51 @@ function sanitizeOps(rawOps) {
     if (!raw || typeof raw !== "object") continue;
     const op = raw.op;
     if (op === "add") {
-      const parentId = str(raw.parentId, 24);
+      const parentId = str(raw.parentId, 32);
       const text = str(raw.text, NODE_TEXT_MAX);
       if (!parentId || !text) continue;
       const out = { op: "add", parentId, text };
-      const ref = str(raw.ref, 16);
-      if (ref && /^[A-Za-z][A-Za-z0-9]{0,15}$/.test(ref) && !seenIds.has(`ref:${ref}`)) {
+      const ref = addAlias(raw, knownIds);
+      if (ref && !seenIds.has(`ref:${ref}`)) {
         seenIds.add(`ref:${ref}`);
         out.ref = ref;
       }
       if (typeof raw.color === "string" && NODE_COLORS.has(raw.color) && raw.color !== "root") out.color = raw.color;
       ops.push(out);
     } else if (op === "rename") {
-      const id = str(raw.id, 24);
+      const id = str(raw.id, 32);
       const text = str(raw.text, NODE_TEXT_MAX);
       if (id && text) ops.push({ op: "rename", id, text });
     } else if (op === "delete") {
-      const id = str(raw.id, 24);
+      const id = str(raw.id, 32);
       if (id && id !== "root") ops.push({ op: "delete", id });
     } else if (op === "move") {
-      const id = str(raw.id, 24);
-      const newParentId = str(raw.newParentId, 24);
+      const id = str(raw.id, 32);
+      const newParentId = str(raw.newParentId, 32);
       if (id && newParentId && id !== "root" && id !== newParentId) ops.push({ op: "move", id, newParentId });
     } else if (op === "style") {
       const style = raw.style && typeof raw.style === "object" ? raw.style : raw;
       const allowed = {};
       if (["color", "mono"].includes(style.color)) allowed.color = style.color;
       if (["curve", "straight", "elbow"].includes(style.line)) allowed.line = style.line;
+      if (["solid", "dashed", "dotted", "dashdot"].includes(style.dash)) allowed.dash = style.dash;
+      if (["round", "rect", "pill", "ellipse", "diamond"].includes(style.shape)) allowed.shape = style.shape;
       if (["mixed", "filled", "outline", "text"].includes(style.nodes)) allowed.nodes = style.nodes;
       if (["horizontal", "vertical", "around", "radial", "mixed"].includes(style.layout)) allowed.layout = style.layout;
       if (Object.keys(allowed).length > 0) ops.push({ op: "style", style: allowed });
+    } else if (op === "icon") {
+      const id = str(raw.id, 32);
+      if (!id) continue;
+      if (raw.icon === null || raw.icon === "") {
+        ops.push({ op: "icon", id, icon: null });
+        continue;
+      }
+      if (raw.icon === "auto") {
+        ops.push({ op: "icon", id, icon: "auto" });
+        continue;
+      }
+      const icon = parseIconRef(raw.icon);
+      if (icon) ops.push({ op: "icon", id, icon });
     } else if (op === "relayout") {
       if (!seenIds.has("relayout")) {
         seenIds.add("relayout");
@@ -599,30 +705,62 @@ async function handleChat(req, res) {
     return;
   }
   const history = sanitizeHistory(parsed.history);
+  const mode = parsed.mode === "review" ? "review" : "edit";
 
   if (!OPENROUTER_API_KEY) {
     sendJson(res, 503, { error: "API-Key nicht konfiguriert", hint: "OPENROUTER_API_KEY in der Server-.env fehlt." });
     return;
   }
 
+  const clientAbort = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) clientAbort.abort();
+  });
+
   try {
+    holdOpen(res);
     const { content, reasoning, finish, model: usedModel } = await callOpenRouter(
       model,
-      buildMessages(tree, instruction, history),
+      buildMessages(tree, instruction, history, mode),
+      clientAbort.signal,
     );
     const json = extractReply(content, reasoning);
-    const ops = sanitizeOps(json?.ops);
+    let ops = sanitizeOps(json?.ops, new Set(tree.map((node) => node.id)));
+    if (mode === "review") {
+      ops = ops.filter((op) => op.op !== "style" && op.op !== "relayout" && op.op !== "icon").slice(0, 20);
+    }
     let reply = str(json?.reply, MAX_REPLY_CHARS);
-    if (!reply && ops.length) reply = "Die Karte ist angepasst.";
+    if (!reply && ops.length) reply = mode === "review" ? "Korrektur vorgeschlagen." : "Die Karte ist angepasst.";
     if (!reply) {
       const snippet = (content || reasoning || "").replace(/\s+/g, " ").slice(0, 160);
       log("UNPARSED", finish || "?", `content=${content.length}`, `reasoning=${reasoning.length}`, snippet);
       reply = "Antwort vom Modell konnte nicht gelesen werden.";
     }
-    log(ip, tier, usedModel, `ops=${ops.length}`, finish || "");
-    sendJson(res, 200, { reply, ops, model: usedModel, authed });
+    const needsCorrection = mode === "review" && ops.length > 0 && json?.needsCorrection !== false;
+    const reason = mode === "review" ? str(json?.reason, MAX_REPLY_CHARS) || (needsCorrection ? reply : "") : "";
+    log(ip, tier, usedModel, mode, `ops=${ops.length}`, needsCorrection ? "fix" : "", finish || "");
+    sendJson(res, 200, {
+      reply,
+      ops,
+      model: usedModel,
+      authed,
+      mode,
+      needsCorrection: Boolean(needsCorrection),
+      reason,
+    });
   } catch (err) {
     if (err.name === "AbortError") {
+      if (clientAbort.signal.aborted || res.writableEnded) {
+        log("CLIENT_GONE", model);
+        if (!res.writableEnded) {
+          try {
+            res.end();
+          } catch {
+            /* Verbindung ist schon zu. */
+          }
+        }
+        return;
+      }
       log("TIMEOUT", model);
       sendJson(res, 504, { error: "Das Modell hat zu lange gebraucht. Bitte nochmal versuchen." });
     } else {
@@ -692,6 +830,292 @@ async function handlePublish(req, res) {
   sendJson(res, 201, { id, title, nodeCount: Object.keys(document.nodes).length });
 }
 
+// ---------- Icons: Katalog + generierter Pool ----------
+
+let lucideCatalog = [];
+let generatedIndex = [];
+
+function iconIndexPath() {
+  return join(ICONS_DIR, "index.json");
+}
+
+function genIconPath(id) {
+  return join(ICONS_DIR, `${id}.png`);
+}
+
+async function loadLucideCatalog() {
+  try {
+    const raw = await readFile(ICONS_CATALOG, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.id === "string")
+      .map((item) => ({
+        id: String(item.id).slice(0, 64),
+        kind: "lucide",
+        label: String(item.label || item.id).slice(0, 80),
+        tags: Array.isArray(item.tags) ? item.tags.map((t) => String(t).slice(0, 40)).slice(0, 12) : [],
+        url: `/icons/lucide/${String(item.id).slice(0, 64)}.svg`,
+      }));
+  } catch (err) {
+    log("WARN icons catalog:", err.message);
+    return [];
+  }
+}
+
+async function loadGeneratedIndex() {
+  try {
+    const raw = await readFile(iconIndexPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.id === "string" && GEN_ID_RE.test(item.id))
+      .map((item) => ({
+        id: item.id,
+        kind: "gen",
+        label: String(item.label || item.id).slice(0, 80),
+        tags: Array.isArray(item.tags) ? item.tags.map((t) => String(t).slice(0, 40)).slice(0, 12) : [],
+        url: `/api/icons/gen/${item.id}`,
+        createdAt: item.createdAt || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+async function saveGeneratedIndex() {
+  await mkdir(ICONS_DIR, { recursive: true });
+  await writeFile(iconIndexPath(), JSON.stringify(generatedIndex, null, 1), "utf8");
+}
+
+function fullIconCatalog() {
+  return [...lucideCatalog, ...generatedIndex];
+}
+
+function catalogForPrompt(limit = 160) {
+  return fullIconCatalog()
+    .slice(0, limit)
+    .map((item) => ({
+      ref: item.kind === "lucide" ? `lucide:${item.id}` : `gen:${item.id}`,
+      label: item.label,
+      tags: item.tags.slice(0, 6),
+    }));
+}
+
+async function callOpenRouterImage(prompt, clientAbort) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
+  if (clientAbort) {
+    if (clientAbort.aborted) controller.abort();
+    else clientAbort.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/images", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://mindmap.orga-hero.com",
+        "X-Title": "Mindmap Icons",
+      },
+      body: JSON.stringify({
+        model: MODEL_IMAGE,
+        prompt,
+        aspect_ratio: "1:1",
+        output_format: "png",
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      const err = new Error(`openrouter image ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+      err.status = res.status === 429 ? 429 : 502;
+      throw err;
+    }
+    const data = await res.json();
+    const b64 = data?.data?.[0]?.b64_json || data?.images?.[0]?.b64_json;
+    if (!b64 || typeof b64 !== "string") throw new Error("openrouter image: leere Antwort");
+    return Buffer.from(b64, "base64");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function generateAndStoreIcon(label, tags, clientAbort) {
+  const id = crypto.randomBytes(6).toString("hex");
+  const prompt = [
+    "Simple flat vector-style app icon for a mind map node.",
+    `Subject: ${label}.`,
+    "Single centered symbol, minimal detail, clean silhouette,",
+    "soft solid colors, no text, no watermark, square composition, plain light background.",
+  ].join(" ");
+  const bytes = await callOpenRouterImage(prompt, clientAbort);
+  await mkdir(ICONS_DIR, { recursive: true });
+  await writeFile(genIconPath(id), bytes);
+  const entry = {
+    id,
+    kind: "gen",
+    label: String(label).slice(0, 80),
+    tags: (tags || []).map((t) => String(t).slice(0, 40)).slice(0, 12),
+    url: `/api/icons/gen/${id}`,
+    createdAt: new Date().toISOString(),
+  };
+  generatedIndex = [entry, ...generatedIndex.filter((item) => item.id !== id)].slice(0, 2000);
+  await saveGeneratedIndex();
+  return entry;
+}
+
+async function chooseIconsWithModel(targets, catalog, model, clientAbort) {
+  const messages = [
+    {
+      role: "system",
+      content: `Du wählst Icons für Mindmap-Knoten. Antworte NUR mit JSON:
+{"picks":[{"id":"<knoten-id>","icon":"lucide:name|gen:id|none"}]}
+Regeln: Pro Knoten genau ein Eintrag. icon muss aus dem Katalog kommen oder "none". Kein Text außerhalb JSON.`,
+    },
+    {
+      role: "user",
+      content: `Knoten:\n${JSON.stringify(targets)}\n\nKatalog:\n${JSON.stringify(catalog)}`,
+    },
+  ];
+  const { content, reasoning } = await callOpenRouter(model, messages, clientAbort);
+  const json = extractJson(content) || extractJson(reasoning) || {};
+  const picks = Array.isArray(json.picks) ? json.picks : [];
+  const byId = new Map();
+  for (const pick of picks) {
+    if (!pick || typeof pick.id !== "string") continue;
+    const icon = pick.icon === "none" || pick.icon === null ? "none" : parseIconRef(pick.icon);
+    if (!icon) continue;
+    byId.set(pick.id.slice(0, 32), icon);
+  }
+  return byId;
+}
+
+function handleListIcons(res) {
+  sendJson(res, 200, { icons: fullIconCatalog() });
+}
+
+async function handleGetGenIcon(res, id) {
+  if (!GEN_ID_RE.test(id)) {
+    sendJson(res, 404, { error: "Icon nicht gefunden" });
+    return;
+  }
+  try {
+    const bytes = await readFile(genIconPath(id));
+    res.writeHead(200, {
+      "Content-Type": "image/png",
+      "Content-Length": bytes.length,
+      "Cache-Control": "public, max-age=86400",
+    });
+    res.end(bytes);
+  } catch {
+    sendJson(res, 404, { error: "Icon nicht gefunden" });
+  }
+}
+
+async function handleAssignIcons(req, res) {
+  const ip = clientIp(req);
+  const authed = verifyBasicAuth(req.headers.authorization);
+  const tier = authed ? "auth" : "anon";
+  const model = authed ? MODEL_AUTH : MODEL_PUBLIC;
+  if (!rateOk(`icons:${tier}:${ip}`, authed ? RATE_ICON_AUTH_MAX : RATE_ICON_ANON_MAX, RATE_ANON_WINDOW_MS)) {
+    sendJson(res, 429, { error: "Too many requests", retryAfterSeconds: 300 });
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(await readBody(req));
+  } catch {
+    sendJson(res, 400, { error: "Ungültiger Request-Body (JSON erwartet)" });
+    return;
+  }
+  const targets = Array.isArray(parsed.targets)
+    ? parsed.targets
+        .filter((t) => t && typeof t.id === "string" && typeof t.text === "string")
+        .map((t) => ({ id: t.id.slice(0, 32), text: String(t.text).slice(0, NODE_TEXT_MAX) }))
+        .slice(0, MAX_ASSIGN_TARGETS)
+    : [];
+  if (!targets.length) {
+    sendJson(res, 400, { error: "targets ([{id,text}, …]) werden benötigt" });
+    return;
+  }
+  if (!OPENROUTER_API_KEY) {
+    sendJson(res, 503, { error: "API-Key nicht konfiguriert" });
+    return;
+  }
+  const allowGenerate = parsed.allowGenerate !== false;
+  const clientAbort = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) clientAbort.abort();
+  });
+
+  try {
+    holdOpen(res);
+    const catalog = catalogForPrompt();
+    const picks = await chooseIconsWithModel(targets, catalog, model, clientAbort.signal);
+    const assignments = [];
+    const created = [];
+    const warnings = [];
+    let generated = 0;
+    for (const target of targets) {
+      let icon = picks.get(target.id) || "none";
+      if (icon !== "none" && !fullIconCatalog().some((item) => {
+        const ref = item.kind === "lucide" ? `lucide:${item.id}` : `gen:${item.id}`;
+        return ref === icon;
+      })) {
+        icon = "none";
+      }
+      if (icon === "none" && allowGenerate && generated < MAX_GENERATE_PER_ASSIGN) {
+        try {
+          const entry = await generateAndStoreIcon(target.text, [target.text.toLowerCase()], clientAbort.signal);
+          icon = `gen:${entry.id}`;
+          created.push(entry);
+          generated += 1;
+        } catch (err) {
+          if (err.name === "AbortError") throw err;
+          log("ICON_GEN_FAIL", target.id, err.message);
+          if (/402|Insufficient credits|credits/i.test(err.message)) {
+            warnings.push("Image-Gen: OpenRouter-Guthaben fehlt oder ist aufgebraucht.");
+          } else {
+            warnings.push(`Image-Gen fehlgeschlagen (${target.text}).`);
+          }
+          icon = null;
+        }
+      } else if (icon === "none") {
+        icon = null;
+      }
+      if (icon) assignments.push({ id: target.id, icon });
+    }
+    log(ip, tier, model, "icons-assign", `n=${assignments.length}`, `gen=${created.length}`);
+    sendJson(res, 200, {
+      assignments,
+      created,
+      model,
+      warnings: [...new Set(warnings)].slice(0, 3),
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      if (clientAbort.signal.aborted || res.writableEnded) {
+        if (!res.writableEnded) {
+          try {
+            res.end();
+          } catch {
+            /* already closed */
+          }
+        }
+        return;
+      }
+      sendJson(res, 504, { error: "Icon-Auswahl hat zu lange gebraucht." });
+      return;
+    }
+    log("ERROR icons-assign", err.message);
+    sendJson(res, err.status || 502, {
+      error: err.status === 429 ? "Rate-Limit beim Modellanbieter." : "Icon-Zuweisung fehlgeschlagen.",
+      detail: err.message.slice(0, 200),
+    });
+  }
+}
+
 // ---------- Server ----------
 
 const server = http.createServer((req, res) => {
@@ -702,13 +1126,35 @@ const server = http.createServer((req, res) => {
       ok: true,
       modelPublic: MODEL_PUBLIC,
       modelAuth: MODEL_AUTH,
+      modelImage: MODEL_IMAGE,
       keyConfigured: Boolean(OPENROUTER_API_KEY),
       authConfigured: Boolean(AUTH_USER && AUTH_HASH),
+      iconsLucide: lucideCatalog.length,
+      iconsGenerated: generatedIndex.length,
     });
     return;
   }
   if (req.method === "POST" && url === "/api/chat") {
     handleChat(req, res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  if (req.method === "GET" && url === "/api/icons") {
+    handleListIcons(res);
+    return;
+  }
+  if (req.method === "POST" && url === "/api/icons/assign") {
+    handleAssignIcons(req, res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  const genIconMatch = /^\/api\/icons\/gen\/([a-z0-9]{8,24})$/.exec(url);
+  if (req.method === "GET" && genIconMatch) {
+    handleGetGenIcon(res, genIconMatch[1]).catch((err) => {
       log("FATAL", err);
       if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
     });
@@ -739,9 +1185,19 @@ const server = http.createServer((req, res) => {
   sendJson(res, 404, { error: "Not Found" });
 });
 
-mkdir(DATA_DIR, { recursive: true })
-  .then(() => seedIfEmpty())
-  .catch((err) => log("ERROR beim Daten-Verzeichnis/Seed:", err.message))
+Promise.all([
+  mkdir(DATA_DIR, { recursive: true }).then(() => seedIfEmpty()),
+  mkdir(ICONS_DIR, { recursive: true })
+    .then(() => loadLucideCatalog())
+    .then((list) => {
+      lucideCatalog = list;
+      return loadGeneratedIndex();
+    })
+    .then((list) => {
+      generatedIndex = list;
+    }),
+])
+  .catch((err) => log("ERROR beim Start:", err.message))
   .finally(() => {
     server.listen(PORT, () => {
       log(
@@ -749,6 +1205,10 @@ mkdir(DATA_DIR, { recursive: true })
         `keyConfigured=${Boolean(OPENROUTER_API_KEY)}`,
         `authConfigured=${Boolean(AUTH_USER && AUTH_HASH)}`,
         `dataDir=${DATA_DIR}`,
+        `iconsDir=${ICONS_DIR}`,
+        `lucide=${lucideCatalog.length}`,
+        `generated=${generatedIndex.length}`,
+        `imageModel=${MODEL_IMAGE}`,
       );
     });
   });

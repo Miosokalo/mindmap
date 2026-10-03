@@ -35,9 +35,10 @@ function layoutSign(dir) {
 }
 
 function layoutNodeSize(node, branch, measureText) {
+  const pad = typeof shapePad === "function" ? shapePad(node, branch) : { x: branch ? 10 : 2, y: branch ? 5 : 1 };
   return {
-    w: measureText(node.text, branch),
-    h: branch ? 30 : 18,
+    w: measureText(node.text, branch, node),
+    h: Math.ceil(16.25 + pad.y * 2 + 2),
   };
 }
 

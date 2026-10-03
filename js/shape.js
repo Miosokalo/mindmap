@@ -4,12 +4,15 @@
 // Der Radius entspricht border-radius der Knoten in css/app.css.
 
 const NODE_OUTLINE_RADIUS = 7;
+const NODE_SHAPES = new Set(["round", "rect", "pill", "ellipse", "diamond"]);
 
 function nodeShape(node) {
   const w = Math.max(1, node && node.w ? node.w : 48);
   const h = Math.max(1, node && node.h ? node.h : 22);
+  const chosen = node && NODE_SHAPES.has(node.shape) ? node.shape : null;
+  const fallback = typeof state !== "undefined" && state && state.style && NODE_SHAPES.has(state.style.shape) ? state.style.shape : "round";
   return {
-    type: "roundRect",
+    type: chosen || fallback,
     cx: node ? node.x : 0,
     cy: node ? node.y : 0,
     w,
@@ -19,14 +22,22 @@ function nodeShape(node) {
 }
 
 function shapeContains(shape, x, y) {
-  if (!shape || shape.type !== "roundRect") return false;
+  if (!shape) return false;
   const hw = shape.w / 2;
   const hh = shape.h / 2;
-  const r = shape.radius;
   const dx = Math.abs(x - shape.cx);
   const dy = Math.abs(y - shape.cy);
+  if (shape.type === "ellipse") {
+    if (hw < 1e-6 || hh < 1e-6) return false;
+    return (dx * dx) / (hw * hw) + (dy * dy) / (hh * hh) <= 1 + 1e-6;
+  }
+  if (shape.type === "diamond") {
+    if (hw < 1e-6 || hh < 1e-6) return false;
+    return dx / hw + dy / hh <= 1 + 1e-6;
+  }
+  const r = shape.type === "rect" ? 0 : shape.type === "pill" ? Math.min(hw, hh) : Math.min(shape.radius || 0, hw, hh);
   if (dx > hw + 1e-6 || dy > hh + 1e-6) return false;
-  if (dx <= hw - r + 1e-6 || dy <= hh - r + 1e-6) return true;
+  if (r <= 0 || dx <= hw - r + 1e-6 || dy <= hh - r + 1e-6) return true;
   const cornerX = hw - r;
   const cornerY = hh - r;
   return (dx - cornerX) ** 2 + (dy - cornerY) ** 2 <= r * r + 1e-6;

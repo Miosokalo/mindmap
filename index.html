@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css?v=38" />
+    <link rel="stylesheet" href="css/app.css?v=41" />
   </head>
   <body>
     <div id="start" hidden>
@@ -54,10 +54,11 @@
     <div class="bar layout-bar" id="layoutbar">
       <div class="bar-title">Layout</div>
       <div class="styles">
-        <label id="scope-field" title="Nur Auswahl ändert den markierten Knoten und seine ausgehenden Linien. Gesamter Unterbaum schreibt denselben Wert auf alle Nachfahren.">
+        <label id="scope-field" title="Nur Auswahl: markierter Knoten. Auswahl + nächste Ebene: Knoten und direkte Kinder. Gesamter Unterbaum: alle Nachfahren.">
           Bereich
           <select id="style-scope">
             <option value="node">Nur Auswahl</option>
+            <option value="children">Auswahl + nächste Ebene</option>
             <option value="subtree">Gesamter Unterbaum</option>
           </select>
         </label>
@@ -74,6 +75,15 @@
             <option value="curve">Geschwungen</option>
             <option value="straight">Gerade</option>
             <option value="elbow">Abgewinkelt</option>
+          </select>
+        </label>
+        <label title="Strichart der ausgehenden Linien. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
+          Strich
+          <select id="style-dash">
+            <option value="solid">Durchgezogen</option>
+            <option value="dashed">Gestrichelt</option>
+            <option value="dotted">Gepunktet</option>
+            <option value="dashdot">Strichpunkt</option>
           </select>
         </label>
         <label id="anchor-field" title="Zeigt die Ankerpunkte am gewählten Knoten. Ein Klick auf eine Linie zeigt ihren Punkt auch bei ausgeschalteter Box. Bei nahem Zoom erscheint er außerdem unter dem Zeiger.">
@@ -103,9 +113,20 @@
             <option value="text">Nur Text</option>
           </select>
         </label>
+        <label title="Form des Knotenrahmens. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
+          Rahmen
+          <select id="style-shape">
+            <option value="round">Abgerundet</option>
+            <option value="rect">Rechteck</option>
+            <option value="pill">Kapsel</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="diamond">Raute</option>
+          </select>
+        </label>
         <button type="button" id="relayout" title="Legt nur die ausgehenden Linien des ausgewählten Knotens neu an. Der Knoten selbst bleibt, wo er steht.">Anordnen</button>
+        <button type="button" id="style-icons-ai" title="Passende Icons per KI für den gewählten Bereich setzen">Icons (KI)</button>
       </div>
-      <p class="hint">Bereich gilt für Farbe, Linien, Strichlänge, Knoten und Anordnung. Anordnen gilt immer nur für den ausgewählten Knoten.</p>
+      <p class="hint">Bereich gilt für Farbe, Linien, Strich, Rahmen, Strichlänge, Knoten, Anordnung und Icons. Anordnen gilt immer nur für den ausgewählten Knoten.</p>
     </div>
     <main id="viewport">
       <div id="world">
@@ -154,6 +175,17 @@
         <button type="submit" id="chat-send">Senden</button>
       </form>
     </aside>
+    <div id="review-dialog" hidden>
+      <div class="review-card" role="dialog" aria-modal="true" aria-labelledby="review-title">
+        <h3 id="review-title">Korrektur vorschlagen?</h3>
+        <p id="review-reason" class="review-reason"></p>
+        <p class="review-hint">Die Karte ist schon sichtbar. Soll die vorgeschlagene Korrektur übernommen werden?</p>
+        <div class="review-actions">
+          <button type="button" id="review-skip">Nein, so lassen</button>
+          <button type="button" id="review-apply" class="review-apply">Ja, korrigieren</button>
+        </div>
+      </div>
+    </div>
     <div id="publish-dialog" hidden>
       <div class="publish-card">
         <h3>Karte veröffentlichen</h3>
@@ -176,11 +208,11 @@
     </div>
     <div id="toast" hidden></div>
     <script src="js/pflanzenschutz.js?v=31"></script>
-    <script src="js/layout.js?v=33"></script>
+    <script src="js/layout.js?v=34"></script>
     <script src="js/collider.js?v=2"></script>
-    <script src="js/shape.js?v=1"></script>
-    <script src="js/app.js?v=48"></script>
-    <script src="js/chat.js?v=23"></script>
+    <script src="js/shape.js?v=2"></script>
+    <script src="js/app.js?v=50"></script>
+    <script src="js/chat.js?v=28"></script>
     <script src="js/gallery.js?v=26"></script>
   </body>
 </html>

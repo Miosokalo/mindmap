@@ -43,23 +43,40 @@ Mindmap.setDocument(doc);
 
 `getDocument()` liefert `{ version, style, camera, nodes }`. Das Schema steht in `schema/mindmap.document.json`. `nodes.root` ist Pflicht. `parentId` muss auf einen vorhandenen Knoten zeigen. `dir` ist `n`, `e`, `s` oder `w`.
 
-Ein Knoten kann `colorMode` (`color`, `mono`), `line` (`curve`, `straight`, `elbow`), `look` (`mixed`, `filled`, `outline`, `text`) und `reach` tragen. `reach` ist der zusätzliche Abstand der ausgehenden Linien in Weltpixeln; fehlt er, gilt 14. Fehlt eines der anderen Felder, gilt der globale Stil. `port` ist `{ side, t }` und setzt den Start der Linie am Elternknoten: `side` ist `n`, `e`, `s` oder `w`, `t` läuft von 0 bis 1 auf dieser Kante.
+Ein Knoten kann `colorMode` (`color`, `mono`), `line` (`curve`, `straight`, `elbow`), `dash` (`solid`, `dashed`, `dotted`, `dashdot`), `shape` (`round`, `rect`, `pill`, `ellipse`, `diamond`), `look` (`mixed`, `filled`, `outline`, `text`) und `reach` tragen. `reach` ist der zusätzliche Abstand der ausgehenden Linien in Weltpixeln; fehlt er, gilt 14. Fehlt eines der anderen Felder, gilt der globale Stil. `port` ist `{ side, t }` und setzt den Start der Linie am Elternknoten: `side` ist `n`, `e`, `s` oder `w`, `t` läuft von 0 bis 1 auf dieser Kante.
 
 `setDocument` ersetzt die Karte und prüft diese Struktur. `relayout(id)` ordnet nur die direkten Kinder von `id` neu an; deren Unterpunkte behalten die Lage zueinander. `relayout(id, { deep: true })` ordnet alle Nachfahren neu. Beides entfernt von Hand gesetzte Anschlüsse an den neu gelegten Linien. `setStyle` ändert die globalen Stilfelder. Ein neues `layout` setzt die Anordnung des Ursprungs und ordnet von dort nur dessen direkte Kinder neu. Die Anordnung eines anderen Knotens steht in `node.flow`.
 
 Eine neue Karte aus einem Baum erzeugt `buildTreeNodes(tree)` und danach `relayoutNodes(nodes, style, "root", textWidth)`.
 
+## Style-Bereich
+
+Im Layout-Panel steuert **Bereich**, wohin Style-Änderungen (Farbe, Linien, Strich, Rahmen, Strichlänge, Knoten, Anordnung, Icons) gehen:
+
+- **Nur Auswahl** (`node`) — markierter Knoten
+- **Auswahl + nächste Ebene** (`children`) — Knoten und direkte Kinder
+- **Gesamter Unterbaum** (`subtree`) — alle Nachfahren
+
+## Icons
+
+Knoten können ein optionales Feld `icon` tragen: `lucide:<name>` (Pack unter `icons/lucide/`, Lucide MIT) oder `gen:<id>` (generiert, API-Volume `/data/icons/`).
+
+- Button **Icons (KI)** im Style-Panel weist Icons für den aktuellen Bereich zu (`POST /api/icons/assign`).
+- Chat-Op `{"op":"icon","id":"…","icon":"lucide:leaf"|"auto"|null}` — `auto` lässt den Server wählen/erzeugen.
+- `GET /api/icons` listet Katalog + generierten Pool; `GET /api/icons/gen/<id>` liefert PNG.
+
 ## Chat-Assistent (OpenRouter)
 
 Unten rechts öffnet der funkelnde Assistenten-Knopf ein Panel. Der Assistent ändert die Karte auf Zuruf, z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.
 
-- `js/chat.js` schickt den kompakten Baum (`id`, `parentId`, `text`, `order`, `color`, `dir`) und den Auftrag an `POST /api/chat` — gleicher Ursprung, ohne Koordinaten.
-- `api/server.mjs` (Zero-Dependency-Node) hält den OpenRouter-Key **nur serverseitig** und ruft `https://openrouter.ai/api/v1/chat/completions` auf.
-- Das Modell antwortet mit `{ reply, ops }`; `ops` folgen `schema/mindmap.ops.json` und werden über die vorhandenen Funktionen (`addChild`, `deleteNode`, `Mindmap.setStyle`, `relayoutNodes`) angewandt. Ein `add` darf `ref` setzen; spätere Ops derselben Antwort nutzen diese `ref` als `parentId`, damit ein Baum in einem Zug entsteht. Ungültige Ops werden übersprungen, die Karte bleibt immer valide.
+- `js/chat.js` schickt den kompakten Baum (`id`, `parentId`, `text`, `order`, `color`, `dir`, `icon`) und den Auftrag an `POST /api/chat` — gleicher Ursprung, ohne Koordinaten.
+- `api/server.mjs` (Zero-Dependency-Node) hält den OpenRouter-Key **nur serverseitig** und ruft `https://openrouter.ai/api/v1/chat/completions` auf; Image-Gen über `https://openrouter.ai/api/v1/images`.
+- Das Modell antwortet mit `{ reply, ops }`; `ops` folgen `schema/mindmap.ops.json` und werden über die vorhandenen Funktionen (`addChild`, `deleteNode`, `Mindmap.setStyle`, `relayoutNodes`) angewandt. Ein `add` darf `ref` setzen; ein `id` an `add`, das es in der Karte nicht gibt, gilt genauso. Spätere Ops derselben Antwort nutzen diese Kurzform als `parentId`, damit ein Baum in einem Zug entsteht. Ungültige Ops werden übersprungen, die Karte bleibt immer valide.
+- Nach strukturellen Änderungen startet automatisch eine Qualitätskontrolle (`mode: "review"`). Das erste Ergebnis bleibt sichtbar; schlägt die Kontrolle eine Korrektur vor, fragt ein Popup nach Bestätigung.
 - Ohne Zugang: günstiges Modell mit strengem Rate-Limit (Caddy + Proxy). Der frühere Slug `deepseek/deepseek-chat-v3.1:free` ist bei OpenRouter nicht mehr verfügbar. Mit Zugang (**Schlüssel** im Panel, Basic Auth): bessere Modelle.
 - `GET /api/health` zeigt Modellkonfiguration und ob der Key gesetzt ist.
 
-Serverseitige Umgebung (`mindmap/.env`, Vorlage `mindmap/.env.example`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`). Key: https://openrouter.ai/keys
+Serverseitige Umgebung (`mindmap/.env`, Vorlage `mindmap/.env.example`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `OPENROUTER_MODEL_IMAGE`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`). Key: https://openrouter.ai/keys
 
 ## Galerie (Community)
 

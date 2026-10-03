@@ -1,0 +1,2010 @@
+[
+  {
+    "id": "accessibility",
+    "kind": "lucide",
+    "label": "accessibility",
+    "tags": [
+      "barrierefreiheit",
+      "accessibility"
+    ],
+    "url": "/icons/lucide/accessibility.svg"
+  },
+  {
+    "id": "alarm-clock",
+    "kind": "lucide",
+    "label": "alarm clock",
+    "tags": [
+      "erinnerung",
+      "zeit",
+      "alarm",
+      "clock"
+    ],
+    "url": "/icons/lucide/alarm-clock.svg"
+  },
+  {
+    "id": "ambulance",
+    "kind": "lucide",
+    "label": "ambulance",
+    "tags": [
+      "notfall",
+      "medizin",
+      "ambulance"
+    ],
+    "url": "/icons/lucide/ambulance.svg"
+  },
+  {
+    "id": "anchor",
+    "kind": "lucide",
+    "label": "anchor",
+    "tags": [
+      "anker",
+      "stabil",
+      "anchor"
+    ],
+    "url": "/icons/lucide/anchor.svg"
+  },
+  {
+    "id": "anvil",
+    "kind": "lucide",
+    "label": "anvil",
+    "tags": [
+      "handwerk",
+      "schmiede",
+      "anvil"
+    ],
+    "url": "/icons/lucide/anvil.svg"
+  },
+  {
+    "id": "apple",
+    "kind": "lucide",
+    "label": "apple",
+    "tags": [
+      "obst",
+      "ernährung",
+      "apple"
+    ],
+    "url": "/icons/lucide/apple.svg"
+  },
+  {
+    "id": "arrow-right",
+    "kind": "lucide",
+    "label": "arrow right",
+    "tags": [
+      "weiter",
+      "richtung",
+      "arrow",
+      "right"
+    ],
+    "url": "/icons/lucide/arrow-right.svg"
+  },
+  {
+    "id": "atom",
+    "kind": "lucide",
+    "label": "atom",
+    "tags": [
+      "wissenschaft",
+      "chemie",
+      "physik",
+      "atom"
+    ],
+    "url": "/icons/lucide/atom.svg"
+  },
+  {
+    "id": "award",
+    "kind": "lucide",
+    "label": "award",
+    "tags": [
+      "preis",
+      "erfolg",
+      "award"
+    ],
+    "url": "/icons/lucide/award.svg"
+  },
+  {
+    "id": "baby",
+    "kind": "lucide",
+    "label": "baby",
+    "tags": [
+      "kind",
+      "familie",
+      "baby"
+    ],
+    "url": "/icons/lucide/baby.svg"
+  },
+  {
+    "id": "bar-chart-3",
+    "kind": "lucide",
+    "label": "bar chart 3",
+    "tags": [
+      "statistik",
+      "vergleich",
+      "bar",
+      "chart"
+    ],
+    "url": "/icons/lucide/bar-chart-3.svg"
+  },
+  {
+    "id": "battery",
+    "kind": "lucide",
+    "label": "battery",
+    "tags": [
+      "energie",
+      "akku",
+      "battery"
+    ],
+    "url": "/icons/lucide/battery.svg"
+  },
+  {
+    "id": "beaker",
+    "kind": "lucide",
+    "label": "beaker",
+    "tags": [
+      "labor",
+      "chemie",
+      "beaker"
+    ],
+    "url": "/icons/lucide/beaker.svg"
+  },
+  {
+    "id": "beer",
+    "kind": "lucide",
+    "label": "beer",
+    "tags": [
+      "getränk",
+      "beer"
+    ],
+    "url": "/icons/lucide/beer.svg"
+  },
+  {
+    "id": "bell",
+    "kind": "lucide",
+    "label": "bell",
+    "tags": [
+      "benachrichtigung",
+      "bell"
+    ],
+    "url": "/icons/lucide/bell.svg"
+  },
+  {
+    "id": "bike",
+    "kind": "lucide",
+    "label": "bike",
+    "tags": [
+      "fahrrad",
+      "mobil",
+      "bike"
+    ],
+    "url": "/icons/lucide/bike.svg"
+  },
+  {
+    "id": "bird",
+    "kind": "lucide",
+    "label": "bird",
+    "tags": [
+      "tier",
+      "vogel",
+      "bird"
+    ],
+    "url": "/icons/lucide/bird.svg"
+  },
+  {
+    "id": "bone",
+    "kind": "lucide",
+    "label": "bone",
+    "tags": [
+      "anatomie",
+      "medizin",
+      "bone"
+    ],
+    "url": "/icons/lucide/bone.svg"
+  },
+  {
+    "id": "book",
+    "kind": "lucide",
+    "label": "book",
+    "tags": [
+      "wissen",
+      "lernen",
+      "book"
+    ],
+    "url": "/icons/lucide/book.svg"
+  },
+  {
+    "id": "book-open",
+    "kind": "lucide",
+    "label": "book open",
+    "tags": [
+      "lesen",
+      "lernen",
+      "book",
+      "open"
+    ],
+    "url": "/icons/lucide/book-open.svg"
+  },
+  {
+    "id": "bot",
+    "kind": "lucide",
+    "label": "bot",
+    "tags": [
+      "ki",
+      "automatisierung",
+      "bot"
+    ],
+    "url": "/icons/lucide/bot.svg"
+  },
+  {
+    "id": "boxes",
+    "kind": "lucide",
+    "label": "boxes",
+    "tags": [
+      "lager",
+      "inventar",
+      "boxes"
+    ],
+    "url": "/icons/lucide/boxes.svg"
+  },
+  {
+    "id": "brain",
+    "kind": "lucide",
+    "label": "brain",
+    "tags": [
+      "denken",
+      "neurologie",
+      "psychologie",
+      "brain"
+    ],
+    "url": "/icons/lucide/brain.svg"
+  },
+  {
+    "id": "briefcase",
+    "kind": "lucide",
+    "label": "briefcase",
+    "tags": [
+      "arbeit",
+      "business",
+      "briefcase"
+    ],
+    "url": "/icons/lucide/briefcase.svg"
+  },
+  {
+    "id": "bug",
+    "kind": "lucide",
+    "label": "bug",
+    "tags": [
+      "fehler",
+      "insekt",
+      "bug"
+    ],
+    "url": "/icons/lucide/bug.svg"
+  },
+  {
+    "id": "building-2",
+    "kind": "lucide",
+    "label": "building 2",
+    "tags": [
+      "gebäude",
+      "stadt",
+      "firma",
+      "building"
+    ],
+    "url": "/icons/lucide/building-2.svg"
+  },
+  {
+    "id": "bus",
+    "kind": "lucide",
+    "label": "bus",
+    "tags": [
+      "öpnv",
+      "verkehr",
+      "bus"
+    ],
+    "url": "/icons/lucide/bus.svg"
+  },
+  {
+    "id": "calculator",
+    "kind": "lucide",
+    "label": "calculator",
+    "tags": [
+      "mathematik",
+      "rechnen",
+      "calculator"
+    ],
+    "url": "/icons/lucide/calculator.svg"
+  },
+  {
+    "id": "calendar",
+    "kind": "lucide",
+    "label": "calendar",
+    "tags": [
+      "termin",
+      "planung",
+      "calendar"
+    ],
+    "url": "/icons/lucide/calendar.svg"
+  },
+  {
+    "id": "camera",
+    "kind": "lucide",
+    "label": "camera",
+    "tags": [
+      "foto",
+      "medien",
+      "camera"
+    ],
+    "url": "/icons/lucide/camera.svg"
+  },
+  {
+    "id": "car",
+    "kind": "lucide",
+    "label": "car",
+    "tags": [
+      "auto",
+      "verkehr",
+      "car"
+    ],
+    "url": "/icons/lucide/car.svg"
+  },
+  {
+    "id": "carrot",
+    "kind": "lucide",
+    "label": "carrot",
+    "tags": [
+      "gemüse",
+      "ernährung",
+      "carrot"
+    ],
+    "url": "/icons/lucide/carrot.svg"
+  },
+  {
+    "id": "cat",
+    "kind": "lucide",
+    "label": "cat",
+    "tags": [
+      "tier",
+      "cat"
+    ],
+    "url": "/icons/lucide/cat.svg"
+  },
+  {
+    "id": "chart-line",
+    "kind": "lucide",
+    "label": "chart line",
+    "tags": [
+      "statistik",
+      "daten",
+      "wachstum",
+      "chart"
+    ],
+    "url": "/icons/lucide/chart-line.svg"
+  },
+  {
+    "id": "check",
+    "kind": "lucide",
+    "label": "check",
+    "tags": [
+      "ok",
+      "erledigt",
+      "check"
+    ],
+    "url": "/icons/lucide/check.svg"
+  },
+  {
+    "id": "circle-help",
+    "kind": "lucide",
+    "label": "circle help",
+    "tags": [
+      "hilfe",
+      "frage",
+      "circle"
+    ],
+    "url": "/icons/lucide/circle-help.svg"
+  },
+  {
+    "id": "circle-x",
+    "kind": "lucide",
+    "label": "circle x",
+    "tags": [
+      "schließen",
+      "fehler",
+      "circle",
+      "x"
+    ],
+    "url": "/icons/lucide/circle-x.svg"
+  },
+  {
+    "id": "clapperboard",
+    "kind": "lucide",
+    "label": "clapperboard",
+    "tags": [
+      "film",
+      "produktion",
+      "clapperboard"
+    ],
+    "url": "/icons/lucide/clapperboard.svg"
+  },
+  {
+    "id": "clipboard-list",
+    "kind": "lucide",
+    "label": "clipboard list",
+    "tags": [
+      "liste",
+      "aufgaben",
+      "clipboard"
+    ],
+    "url": "/icons/lucide/clipboard-list.svg"
+  },
+  {
+    "id": "clock",
+    "kind": "lucide",
+    "label": "clock",
+    "tags": [
+      "zeit",
+      "clock"
+    ],
+    "url": "/icons/lucide/clock.svg"
+  },
+  {
+    "id": "cloud",
+    "kind": "lucide",
+    "label": "cloud",
+    "tags": [
+      "wetter",
+      "himmel",
+      "cloud"
+    ],
+    "url": "/icons/lucide/cloud.svg"
+  },
+  {
+    "id": "cloud-rain",
+    "kind": "lucide",
+    "label": "cloud rain",
+    "tags": [
+      "regen",
+      "wetter",
+      "cloud",
+      "rain"
+    ],
+    "url": "/icons/lucide/cloud-rain.svg"
+  },
+  {
+    "id": "code",
+    "kind": "lucide",
+    "label": "code",
+    "tags": [
+      "programmierung",
+      "software",
+      "code"
+    ],
+    "url": "/icons/lucide/code.svg"
+  },
+  {
+    "id": "coffee",
+    "kind": "lucide",
+    "label": "coffee",
+    "tags": [
+      "getränk",
+      "pause",
+      "coffee"
+    ],
+    "url": "/icons/lucide/coffee.svg"
+  },
+  {
+    "id": "coins",
+    "kind": "lucide",
+    "label": "coins",
+    "tags": [
+      "geld",
+      "finanz",
+      "coins"
+    ],
+    "url": "/icons/lucide/coins.svg"
+  },
+  {
+    "id": "compass",
+    "kind": "lucide",
+    "label": "compass",
+    "tags": [
+      "navigation",
+      "richtung",
+      "compass"
+    ],
+    "url": "/icons/lucide/compass.svg"
+  },
+  {
+    "id": "cookie",
+    "kind": "lucide",
+    "label": "cookie",
+    "tags": [
+      "süß",
+      "ernährung",
+      "cookie"
+    ],
+    "url": "/icons/lucide/cookie.svg"
+  },
+  {
+    "id": "cpu",
+    "kind": "lucide",
+    "label": "cpu",
+    "tags": [
+      "computer",
+      "technik",
+      "cpu"
+    ],
+    "url": "/icons/lucide/cpu.svg"
+  },
+  {
+    "id": "credit-card",
+    "kind": "lucide",
+    "label": "credit card",
+    "tags": [
+      "zahlung",
+      "geld",
+      "credit",
+      "card"
+    ],
+    "url": "/icons/lucide/credit-card.svg"
+  },
+  {
+    "id": "crown",
+    "kind": "lucide",
+    "label": "crown",
+    "tags": [
+      "führung",
+      "könig",
+      "crown"
+    ],
+    "url": "/icons/lucide/crown.svg"
+  },
+  {
+    "id": "database",
+    "kind": "lucide",
+    "label": "database",
+    "tags": [
+      "daten",
+      "speicher",
+      "database"
+    ],
+    "url": "/icons/lucide/database.svg"
+  },
+  {
+    "id": "dna",
+    "kind": "lucide",
+    "label": "dna",
+    "tags": [
+      "biologie",
+      "genetik",
+      "dna"
+    ],
+    "url": "/icons/lucide/dna.svg"
+  },
+  {
+    "id": "dog",
+    "kind": "lucide",
+    "label": "dog",
+    "tags": [
+      "tier",
+      "dog"
+    ],
+    "url": "/icons/lucide/dog.svg"
+  },
+  {
+    "id": "download",
+    "kind": "lucide",
+    "label": "download",
+    "tags": [
+      "herunterladen",
+      "download"
+    ],
+    "url": "/icons/lucide/download.svg"
+  },
+  {
+    "id": "droplet",
+    "kind": "lucide",
+    "label": "droplet",
+    "tags": [
+      "wasser",
+      "flüssig",
+      "droplet"
+    ],
+    "url": "/icons/lucide/droplet.svg"
+  },
+  {
+    "id": "dumbbell",
+    "kind": "lucide",
+    "label": "dumbbell",
+    "tags": [
+      "sport",
+      "fitness",
+      "dumbbell"
+    ],
+    "url": "/icons/lucide/dumbbell.svg"
+  },
+  {
+    "id": "earth",
+    "kind": "lucide",
+    "label": "earth",
+    "tags": [
+      "erde",
+      "planet",
+      "umwelt",
+      "earth"
+    ],
+    "url": "/icons/lucide/earth.svg"
+  },
+  {
+    "id": "egg",
+    "kind": "lucide",
+    "label": "egg",
+    "tags": [
+      "ernährung",
+      "egg"
+    ],
+    "url": "/icons/lucide/egg.svg"
+  },
+  {
+    "id": "eye",
+    "kind": "lucide",
+    "label": "eye",
+    "tags": [
+      "sicht",
+      "beobachten",
+      "eye"
+    ],
+    "url": "/icons/lucide/eye.svg"
+  },
+  {
+    "id": "factory",
+    "kind": "lucide",
+    "label": "factory",
+    "tags": [
+      "industrie",
+      "produktion",
+      "factory"
+    ],
+    "url": "/icons/lucide/factory.svg"
+  },
+  {
+    "id": "file-text",
+    "kind": "lucide",
+    "label": "file text",
+    "tags": [
+      "dokument",
+      "text",
+      "file"
+    ],
+    "url": "/icons/lucide/file-text.svg"
+  },
+  {
+    "id": "film",
+    "kind": "lucide",
+    "label": "film",
+    "tags": [
+      "video",
+      "medien",
+      "film"
+    ],
+    "url": "/icons/lucide/film.svg"
+  },
+  {
+    "id": "filter",
+    "kind": "lucide",
+    "label": "filter",
+    "tags": [
+      "filtern",
+      "auswahl",
+      "filter"
+    ],
+    "url": "/icons/lucide/filter.svg"
+  },
+  {
+    "id": "fish",
+    "kind": "lucide",
+    "label": "fish",
+    "tags": [
+      "tiere",
+      "ernährung",
+      "fish"
+    ],
+    "url": "/icons/lucide/fish.svg"
+  },
+  {
+    "id": "flag",
+    "kind": "lucide",
+    "label": "flag",
+    "tags": [
+      "nation",
+      "ziel",
+      "flag"
+    ],
+    "url": "/icons/lucide/flag.svg"
+  },
+  {
+    "id": "flame",
+    "kind": "lucide",
+    "label": "flame",
+    "tags": [
+      "feuer",
+      "energie",
+      "hitze",
+      "flame"
+    ],
+    "url": "/icons/lucide/flame.svg"
+  },
+  {
+    "id": "flask-conical",
+    "kind": "lucide",
+    "label": "flask conical",
+    "tags": [
+      "chemie",
+      "labor",
+      "wissenschaft",
+      "flask"
+    ],
+    "url": "/icons/lucide/flask-conical.svg"
+  },
+  {
+    "id": "flower-2",
+    "kind": "lucide",
+    "label": "flower 2",
+    "tags": [
+      "natur",
+      "blume",
+      "flower"
+    ],
+    "url": "/icons/lucide/flower-2.svg"
+  },
+  {
+    "id": "folder",
+    "kind": "lucide",
+    "label": "folder",
+    "tags": [
+      "ordner",
+      "dateien",
+      "folder"
+    ],
+    "url": "/icons/lucide/folder.svg"
+  },
+  {
+    "id": "footprints",
+    "kind": "lucide",
+    "label": "footprints",
+    "tags": [
+      "schritte",
+      "spur",
+      "footprints"
+    ],
+    "url": "/icons/lucide/footprints.svg"
+  },
+  {
+    "id": "frown",
+    "kind": "lucide",
+    "label": "frown",
+    "tags": [
+      "negativ",
+      "emotion",
+      "frown"
+    ],
+    "url": "/icons/lucide/frown.svg"
+  },
+  {
+    "id": "fuel",
+    "kind": "lucide",
+    "label": "fuel",
+    "tags": [
+      "energie",
+      "kraftstoff",
+      "fuel"
+    ],
+    "url": "/icons/lucide/fuel.svg"
+  },
+  {
+    "id": "gamepad-2",
+    "kind": "lucide",
+    "label": "gamepad 2",
+    "tags": [
+      "spiel",
+      "freizeit",
+      "gamepad"
+    ],
+    "url": "/icons/lucide/gamepad-2.svg"
+  },
+  {
+    "id": "gavel",
+    "kind": "lucide",
+    "label": "gavel",
+    "tags": [
+      "recht",
+      "gericht",
+      "gavel"
+    ],
+    "url": "/icons/lucide/gavel.svg"
+  },
+  {
+    "id": "gem",
+    "kind": "lucide",
+    "label": "gem",
+    "tags": [
+      "wert",
+      "edel",
+      "gem"
+    ],
+    "url": "/icons/lucide/gem.svg"
+  },
+  {
+    "id": "git-branch",
+    "kind": "lucide",
+    "label": "git branch",
+    "tags": [
+      "verzweigung",
+      "entwicklung",
+      "git",
+      "branch"
+    ],
+    "url": "/icons/lucide/git-branch.svg"
+  },
+  {
+    "id": "globe",
+    "kind": "lucide",
+    "label": "globe",
+    "tags": [
+      "welt",
+      "international",
+      "globe"
+    ],
+    "url": "/icons/lucide/globe.svg"
+  },
+  {
+    "id": "graduation-cap",
+    "kind": "lucide",
+    "label": "graduation cap",
+    "tags": [
+      "bildung",
+      "schule",
+      "studium",
+      "graduation"
+    ],
+    "url": "/icons/lucide/graduation-cap.svg"
+  },
+  {
+    "id": "hammer",
+    "kind": "lucide",
+    "label": "hammer",
+    "tags": [
+      "bau",
+      "werkzeug",
+      "hammer"
+    ],
+    "url": "/icons/lucide/hammer.svg"
+  },
+  {
+    "id": "hand-heart",
+    "kind": "lucide",
+    "label": "hand heart",
+    "tags": [
+      "hilfe",
+      "fürsorge",
+      "hand",
+      "heart"
+    ],
+    "url": "/icons/lucide/hand-heart.svg"
+  },
+  {
+    "id": "handshake",
+    "kind": "lucide",
+    "label": "handshake",
+    "tags": [
+      "vertrag",
+      "partnerschaft",
+      "handshake"
+    ],
+    "url": "/icons/lucide/handshake.svg"
+  },
+  {
+    "id": "heart",
+    "kind": "lucide",
+    "label": "heart",
+    "tags": [
+      "liebe",
+      "gefühl",
+      "heart"
+    ],
+    "url": "/icons/lucide/heart.svg"
+  },
+  {
+    "id": "heart-pulse",
+    "kind": "lucide",
+    "label": "heart pulse",
+    "tags": [
+      "medizin",
+      "herz",
+      "gesundheit",
+      "heart"
+    ],
+    "url": "/icons/lucide/heart-pulse.svg"
+  },
+  {
+    "id": "home",
+    "kind": "lucide",
+    "label": "home",
+    "tags": [
+      "zuhause",
+      "wohnen",
+      "home"
+    ],
+    "url": "/icons/lucide/home.svg"
+  },
+  {
+    "id": "hospital",
+    "kind": "lucide",
+    "label": "hospital",
+    "tags": [
+      "medizin",
+      "krankenhaus",
+      "hospital"
+    ],
+    "url": "/icons/lucide/hospital.svg"
+  },
+  {
+    "id": "hourglass",
+    "kind": "lucide",
+    "label": "hourglass",
+    "tags": [
+      "zeit",
+      "deadline",
+      "hourglass"
+    ],
+    "url": "/icons/lucide/hourglass.svg"
+  },
+  {
+    "id": "image",
+    "kind": "lucide",
+    "label": "image",
+    "tags": [
+      "bild",
+      "medien",
+      "image"
+    ],
+    "url": "/icons/lucide/image.svg"
+  },
+  {
+    "id": "info",
+    "kind": "lucide",
+    "label": "info",
+    "tags": [
+      "information",
+      "info"
+    ],
+    "url": "/icons/lucide/info.svg"
+  },
+  {
+    "id": "key-round",
+    "kind": "lucide",
+    "label": "key round",
+    "tags": [
+      "zugang",
+      "schlüssel",
+      "key"
+    ],
+    "url": "/icons/lucide/key-round.svg"
+  },
+  {
+    "id": "landmark",
+    "kind": "lucide",
+    "label": "landmark",
+    "tags": [
+      "politik",
+      "staat",
+      "landmark"
+    ],
+    "url": "/icons/lucide/landmark.svg"
+  },
+  {
+    "id": "languages",
+    "kind": "lucide",
+    "label": "languages",
+    "tags": [
+      "sprache",
+      "übersetzung",
+      "languages"
+    ],
+    "url": "/icons/lucide/languages.svg"
+  },
+  {
+    "id": "laptop",
+    "kind": "lucide",
+    "label": "laptop",
+    "tags": [
+      "computer",
+      "arbeit",
+      "laptop"
+    ],
+    "url": "/icons/lucide/laptop.svg"
+  },
+  {
+    "id": "layers",
+    "kind": "lucide",
+    "label": "layers",
+    "tags": [
+      "ebenen",
+      "schichten",
+      "layers"
+    ],
+    "url": "/icons/lucide/layers.svg"
+  },
+  {
+    "id": "layout-grid",
+    "kind": "lucide",
+    "label": "layout grid",
+    "tags": [
+      "layout",
+      "raster"
+    ],
+    "url": "/icons/lucide/layout-grid.svg"
+  },
+  {
+    "id": "leaf",
+    "kind": "lucide",
+    "label": "leaf",
+    "tags": [
+      "natur",
+      "pflanze",
+      "grün",
+      "leaf"
+    ],
+    "url": "/icons/lucide/leaf.svg"
+  },
+  {
+    "id": "leafy-green",
+    "kind": "lucide",
+    "label": "leafy green",
+    "tags": [
+      "salat",
+      "ernährung",
+      "grün",
+      "leafy",
+      "green"
+    ],
+    "url": "/icons/lucide/leafy-green.svg"
+  },
+  {
+    "id": "lightbulb",
+    "kind": "lucide",
+    "label": "lightbulb",
+    "tags": [
+      "idee",
+      "innovation",
+      "lightbulb"
+    ],
+    "url": "/icons/lucide/lightbulb.svg"
+  },
+  {
+    "id": "link",
+    "kind": "lucide",
+    "label": "link",
+    "tags": [
+      "verbindung",
+      "url",
+      "link"
+    ],
+    "url": "/icons/lucide/link.svg"
+  },
+  {
+    "id": "list-tree",
+    "kind": "lucide",
+    "label": "list tree",
+    "tags": [
+      "struktur",
+      "hierarchie"
+    ],
+    "url": "/icons/lucide/list-tree.svg"
+  },
+  {
+    "id": "lock",
+    "kind": "lucide",
+    "label": "lock",
+    "tags": [
+      "sicherheit",
+      "privat",
+      "lock"
+    ],
+    "url": "/icons/lucide/lock.svg"
+  },
+  {
+    "id": "mail",
+    "kind": "lucide",
+    "label": "mail",
+    "tags": [
+      "email",
+      "nachricht",
+      "mail"
+    ],
+    "url": "/icons/lucide/mail.svg"
+  },
+  {
+    "id": "map",
+    "kind": "lucide",
+    "label": "map",
+    "tags": [
+      "karte",
+      "geografie",
+      "map"
+    ],
+    "url": "/icons/lucide/map.svg"
+  },
+  {
+    "id": "map-pin",
+    "kind": "lucide",
+    "label": "map pin",
+    "tags": [
+      "ort",
+      "standort",
+      "map",
+      "pin"
+    ],
+    "url": "/icons/lucide/map-pin.svg"
+  },
+  {
+    "id": "megaphone",
+    "kind": "lucide",
+    "label": "megaphone",
+    "tags": [
+      "ankündigung",
+      "marketing",
+      "megaphone"
+    ],
+    "url": "/icons/lucide/megaphone.svg"
+  },
+  {
+    "id": "meh",
+    "kind": "lucide",
+    "label": "meh",
+    "tags": [
+      "neutral",
+      "meh"
+    ],
+    "url": "/icons/lucide/meh.svg"
+  },
+  {
+    "id": "message-circle",
+    "kind": "lucide",
+    "label": "message circle",
+    "tags": [
+      "kommunikation",
+      "chat",
+      "message",
+      "circle"
+    ],
+    "url": "/icons/lucide/message-circle.svg"
+  },
+  {
+    "id": "microscope",
+    "kind": "lucide",
+    "label": "microscope",
+    "tags": [
+      "wissenschaft",
+      "forschung",
+      "microscope"
+    ],
+    "url": "/icons/lucide/microscope.svg"
+  },
+  {
+    "id": "milk",
+    "kind": "lucide",
+    "label": "milk",
+    "tags": [
+      "milch",
+      "ernährung",
+      "milk"
+    ],
+    "url": "/icons/lucide/milk.svg"
+  },
+  {
+    "id": "minus",
+    "kind": "lucide",
+    "label": "minus",
+    "tags": [
+      "entfernen",
+      "minus"
+    ],
+    "url": "/icons/lucide/minus.svg"
+  },
+  {
+    "id": "moon",
+    "kind": "lucide",
+    "label": "moon",
+    "tags": [
+      "nacht",
+      "wetter",
+      "moon"
+    ],
+    "url": "/icons/lucide/moon.svg"
+  },
+  {
+    "id": "mountain",
+    "kind": "lucide",
+    "label": "mountain",
+    "tags": [
+      "berg",
+      "natur",
+      "geografie",
+      "mountain"
+    ],
+    "url": "/icons/lucide/mountain.svg"
+  },
+  {
+    "id": "music",
+    "kind": "lucide",
+    "label": "music",
+    "tags": [
+      "musik",
+      "klang",
+      "music"
+    ],
+    "url": "/icons/lucide/music.svg"
+  },
+  {
+    "id": "network",
+    "kind": "lucide",
+    "label": "network",
+    "tags": [
+      "netzwerk",
+      "verbindung",
+      "network"
+    ],
+    "url": "/icons/lucide/network.svg"
+  },
+  {
+    "id": "newspaper",
+    "kind": "lucide",
+    "label": "newspaper",
+    "tags": [
+      "nachrichten",
+      "medien",
+      "newspaper"
+    ],
+    "url": "/icons/lucide/newspaper.svg"
+  },
+  {
+    "id": "notebook-pen",
+    "kind": "lucide",
+    "label": "notebook pen",
+    "tags": [
+      "notizen",
+      "notebook",
+      "pen"
+    ],
+    "url": "/icons/lucide/notebook-pen.svg"
+  },
+  {
+    "id": "orbit",
+    "kind": "lucide",
+    "label": "orbit",
+    "tags": [
+      "weltraum",
+      "kreislauf",
+      "orbit"
+    ],
+    "url": "/icons/lucide/orbit.svg"
+  },
+  {
+    "id": "package",
+    "kind": "lucide",
+    "label": "package",
+    "tags": [
+      "paket",
+      "lieferung",
+      "package"
+    ],
+    "url": "/icons/lucide/package.svg"
+  },
+  {
+    "id": "palette",
+    "kind": "lucide",
+    "label": "palette",
+    "tags": [
+      "kunst",
+      "design",
+      "farbe",
+      "palette"
+    ],
+    "url": "/icons/lucide/palette.svg"
+  },
+  {
+    "id": "pen-line",
+    "kind": "lucide",
+    "label": "pen line",
+    "tags": [
+      "schreiben",
+      "notiz",
+      "pen"
+    ],
+    "url": "/icons/lucide/pen-line.svg"
+  },
+  {
+    "id": "pencil",
+    "kind": "lucide",
+    "label": "pencil",
+    "tags": [
+      "schreiben",
+      "bearbeiten",
+      "pencil"
+    ],
+    "url": "/icons/lucide/pencil.svg"
+  },
+  {
+    "id": "person-standing",
+    "kind": "lucide",
+    "label": "person standing",
+    "tags": [
+      "mensch",
+      "körper",
+      "person"
+    ],
+    "url": "/icons/lucide/person-standing.svg"
+  },
+  {
+    "id": "phone",
+    "kind": "lucide",
+    "label": "phone",
+    "tags": [
+      "telefon",
+      "kontakt",
+      "phone"
+    ],
+    "url": "/icons/lucide/phone.svg"
+  },
+  {
+    "id": "pie-chart",
+    "kind": "lucide",
+    "label": "pie chart",
+    "tags": [
+      "anteile",
+      "statistik",
+      "pie",
+      "chart"
+    ],
+    "url": "/icons/lucide/pie-chart.svg"
+  },
+  {
+    "id": "pill",
+    "kind": "lucide",
+    "label": "pill",
+    "tags": [
+      "medizin",
+      "medikament",
+      "pill"
+    ],
+    "url": "/icons/lucide/pill.svg"
+  },
+  {
+    "id": "plane",
+    "kind": "lucide",
+    "label": "plane",
+    "tags": [
+      "flug",
+      "reisen",
+      "plane"
+    ],
+    "url": "/icons/lucide/plane.svg"
+  },
+  {
+    "id": "plug",
+    "kind": "lucide",
+    "label": "plug",
+    "tags": [
+      "strom",
+      "anschluss",
+      "plug"
+    ],
+    "url": "/icons/lucide/plug.svg"
+  },
+  {
+    "id": "plus",
+    "kind": "lucide",
+    "label": "plus",
+    "tags": [
+      "hinzufügen",
+      "plus"
+    ],
+    "url": "/icons/lucide/plus.svg"
+  },
+  {
+    "id": "puzzle",
+    "kind": "lucide",
+    "label": "puzzle",
+    "tags": [
+      "lösung",
+      "teil",
+      "puzzle"
+    ],
+    "url": "/icons/lucide/puzzle.svg"
+  },
+  {
+    "id": "rabbit",
+    "kind": "lucide",
+    "label": "rabbit",
+    "tags": [
+      "tier",
+      "rabbit"
+    ],
+    "url": "/icons/lucide/rabbit.svg"
+  },
+  {
+    "id": "radio",
+    "kind": "lucide",
+    "label": "radio",
+    "tags": [
+      "funk",
+      "kommunikation",
+      "radio"
+    ],
+    "url": "/icons/lucide/radio.svg"
+  },
+  {
+    "id": "recycle",
+    "kind": "lucide",
+    "label": "recycle",
+    "tags": [
+      "umwelt",
+      "kreislauf",
+      "recycle"
+    ],
+    "url": "/icons/lucide/recycle.svg"
+  },
+  {
+    "id": "rocket",
+    "kind": "lucide",
+    "label": "rocket",
+    "tags": [
+      "start",
+      "innovation",
+      "raumfahrt",
+      "rocket"
+    ],
+    "url": "/icons/lucide/rocket.svg"
+  },
+  {
+    "id": "satellite",
+    "kind": "lucide",
+    "label": "satellite",
+    "tags": [
+      "raumfahrt",
+      "kommunikation",
+      "satellite"
+    ],
+    "url": "/icons/lucide/satellite.svg"
+  },
+  {
+    "id": "scale",
+    "kind": "lucide",
+    "label": "scale",
+    "tags": [
+      "recht",
+      "gerechtigkeit",
+      "scale"
+    ],
+    "url": "/icons/lucide/scale.svg"
+  },
+  {
+    "id": "scissors",
+    "kind": "lucide",
+    "label": "scissors",
+    "tags": [
+      "schneiden",
+      "werkzeug",
+      "scissors"
+    ],
+    "url": "/icons/lucide/scissors.svg"
+  },
+  {
+    "id": "search",
+    "kind": "lucide",
+    "label": "search",
+    "tags": [
+      "suche",
+      "finden",
+      "search"
+    ],
+    "url": "/icons/lucide/search.svg"
+  },
+  {
+    "id": "settings",
+    "kind": "lucide",
+    "label": "settings",
+    "tags": [
+      "einstellungen",
+      "konfiguration",
+      "settings"
+    ],
+    "url": "/icons/lucide/settings.svg"
+  },
+  {
+    "id": "share-2",
+    "kind": "lucide",
+    "label": "share 2",
+    "tags": [
+      "teilen",
+      "share"
+    ],
+    "url": "/icons/lucide/share-2.svg"
+  },
+  {
+    "id": "shield",
+    "kind": "lucide",
+    "label": "shield",
+    "tags": [
+      "schutz",
+      "sicherheit",
+      "shield"
+    ],
+    "url": "/icons/lucide/shield.svg"
+  },
+  {
+    "id": "ship",
+    "kind": "lucide",
+    "label": "ship",
+    "tags": [
+      "schiff",
+      "see",
+      "ship"
+    ],
+    "url": "/icons/lucide/ship.svg"
+  },
+  {
+    "id": "shopping-cart",
+    "kind": "lucide",
+    "label": "shopping cart",
+    "tags": [
+      "einkauf",
+      "konsum",
+      "shopping",
+      "cart"
+    ],
+    "url": "/icons/lucide/shopping-cart.svg"
+  },
+  {
+    "id": "siren",
+    "kind": "lucide",
+    "label": "siren",
+    "tags": [
+      "alarm",
+      "notfall",
+      "siren"
+    ],
+    "url": "/icons/lucide/siren.svg"
+  },
+  {
+    "id": "smartphone",
+    "kind": "lucide",
+    "label": "smartphone",
+    "tags": [
+      "handy",
+      "mobil",
+      "smartphone"
+    ],
+    "url": "/icons/lucide/smartphone.svg"
+  },
+  {
+    "id": "smile",
+    "kind": "lucide",
+    "label": "smile",
+    "tags": [
+      "positiv",
+      "emotion",
+      "smile"
+    ],
+    "url": "/icons/lucide/smile.svg"
+  },
+  {
+    "id": "snowflake",
+    "kind": "lucide",
+    "label": "snowflake",
+    "tags": [
+      "kalt",
+      "winter",
+      "wetter",
+      "snowflake"
+    ],
+    "url": "/icons/lucide/snowflake.svg"
+  },
+  {
+    "id": "sparkles",
+    "kind": "lucide",
+    "label": "sparkles",
+    "tags": [
+      "ki",
+      "magie",
+      "neu",
+      "sparkles"
+    ],
+    "url": "/icons/lucide/sparkles.svg"
+  },
+  {
+    "id": "speech",
+    "kind": "lucide",
+    "label": "speech",
+    "tags": [
+      "sprechen",
+      "rede",
+      "speech"
+    ],
+    "url": "/icons/lucide/speech.svg"
+  },
+  {
+    "id": "sprout",
+    "kind": "lucide",
+    "label": "sprout",
+    "tags": [
+      "natur",
+      "wachsen",
+      "keim",
+      "sprout"
+    ],
+    "url": "/icons/lucide/sprout.svg"
+  },
+  {
+    "id": "star",
+    "kind": "lucide",
+    "label": "star",
+    "tags": [
+      "favorit",
+      "bewertung",
+      "star"
+    ],
+    "url": "/icons/lucide/star.svg"
+  },
+  {
+    "id": "stethoscope",
+    "kind": "lucide",
+    "label": "stethoscope",
+    "tags": [
+      "medizin",
+      "gesundheit",
+      "stethoscope"
+    ],
+    "url": "/icons/lucide/stethoscope.svg"
+  },
+  {
+    "id": "store",
+    "kind": "lucide",
+    "label": "store",
+    "tags": [
+      "handel",
+      "laden",
+      "store"
+    ],
+    "url": "/icons/lucide/store.svg"
+  },
+  {
+    "id": "sun",
+    "kind": "lucide",
+    "label": "sun",
+    "tags": [
+      "licht",
+      "energie",
+      "wetter",
+      "sun"
+    ],
+    "url": "/icons/lucide/sun.svg"
+  },
+  {
+    "id": "target",
+    "kind": "lucide",
+    "label": "target",
+    "tags": [
+      "ziel",
+      "fokus",
+      "target"
+    ],
+    "url": "/icons/lucide/target.svg"
+  },
+  {
+    "id": "telescope",
+    "kind": "lucide",
+    "label": "telescope",
+    "tags": [
+      "astronomie",
+      "forschung",
+      "telescope"
+    ],
+    "url": "/icons/lucide/telescope.svg"
+  },
+  {
+    "id": "terminal",
+    "kind": "lucide",
+    "label": "terminal",
+    "tags": [
+      "entwicklung",
+      "console",
+      "terminal"
+    ],
+    "url": "/icons/lucide/terminal.svg"
+  },
+  {
+    "id": "test-tube",
+    "kind": "lucide",
+    "label": "test tube",
+    "tags": [
+      "labor",
+      "chemie",
+      "test",
+      "tube"
+    ],
+    "url": "/icons/lucide/test-tube.svg"
+  },
+  {
+    "id": "thermometer",
+    "kind": "lucide",
+    "label": "thermometer",
+    "tags": [
+      "temperatur",
+      "messung",
+      "thermometer"
+    ],
+    "url": "/icons/lucide/thermometer.svg"
+  },
+  {
+    "id": "thumbs-down",
+    "kind": "lucide",
+    "label": "thumbs down",
+    "tags": [
+      "ablehnung",
+      "thumbs",
+      "down"
+    ],
+    "url": "/icons/lucide/thumbs-down.svg"
+  },
+  {
+    "id": "thumbs-up",
+    "kind": "lucide",
+    "label": "thumbs up",
+    "tags": [
+      "zustimmung",
+      "thumbs",
+      "up"
+    ],
+    "url": "/icons/lucide/thumbs-up.svg"
+  },
+  {
+    "id": "timer",
+    "kind": "lucide",
+    "label": "timer",
+    "tags": [
+      "zeitmessung",
+      "timer"
+    ],
+    "url": "/icons/lucide/timer.svg"
+  },
+  {
+    "id": "train-front",
+    "kind": "lucide",
+    "label": "train front",
+    "tags": [
+      "bahn",
+      "verkehr",
+      "train"
+    ],
+    "url": "/icons/lucide/train-front.svg"
+  },
+  {
+    "id": "tree-pine",
+    "kind": "lucide",
+    "label": "tree pine",
+    "tags": [
+      "natur",
+      "wald",
+      "baum",
+      "pine"
+    ],
+    "url": "/icons/lucide/tree-pine.svg"
+  },
+  {
+    "id": "trees",
+    "kind": "lucide",
+    "label": "trees",
+    "tags": [
+      "natur",
+      "wald",
+      "trees"
+    ],
+    "url": "/icons/lucide/trees.svg"
+  },
+  {
+    "id": "trending-down",
+    "kind": "lucide",
+    "label": "trending down",
+    "tags": [
+      "rückgang",
+      "trending",
+      "down"
+    ],
+    "url": "/icons/lucide/trending-down.svg"
+  },
+  {
+    "id": "trending-up",
+    "kind": "lucide",
+    "label": "trending up",
+    "tags": [
+      "wachstum",
+      "anstieg",
+      "trending",
+      "up"
+    ],
+    "url": "/icons/lucide/trending-up.svg"
+  },
+  {
+    "id": "triangle-alert",
+    "kind": "lucide",
+    "label": "triangle alert",
+    "tags": [
+      "warnung",
+      "risiko",
+      "triangle"
+    ],
+    "url": "/icons/lucide/triangle-alert.svg"
+  },
+  {
+    "id": "trophy",
+    "kind": "lucide",
+    "label": "trophy",
+    "tags": [
+      "sieg",
+      "erfolg",
+      "trophy"
+    ],
+    "url": "/icons/lucide/trophy.svg"
+  },
+  {
+    "id": "tv",
+    "kind": "lucide",
+    "label": "tv",
+    "tags": [
+      "fernsehen",
+      "medien",
+      "tv"
+    ],
+    "url": "/icons/lucide/tv.svg"
+  },
+  {
+    "id": "upload",
+    "kind": "lucide",
+    "label": "upload",
+    "tags": [
+      "hochladen",
+      "upload"
+    ],
+    "url": "/icons/lucide/upload.svg"
+  },
+  {
+    "id": "user",
+    "kind": "lucide",
+    "label": "user",
+    "tags": [
+      "person",
+      "mensch",
+      "user"
+    ],
+    "url": "/icons/lucide/user.svg"
+  },
+  {
+    "id": "user-round",
+    "kind": "lucide",
+    "label": "user round",
+    "tags": [
+      "person",
+      "user"
+    ],
+    "url": "/icons/lucide/user-round.svg"
+  },
+  {
+    "id": "users",
+    "kind": "lucide",
+    "label": "users",
+    "tags": [
+      "gruppe",
+      "team",
+      "menschen",
+      "users"
+    ],
+    "url": "/icons/lucide/users.svg"
+  },
+  {
+    "id": "utensils",
+    "kind": "lucide",
+    "label": "utensils",
+    "tags": [
+      "essen",
+      "kochen",
+      "utensils"
+    ],
+    "url": "/icons/lucide/utensils.svg"
+  },
+  {
+    "id": "wallet",
+    "kind": "lucide",
+    "label": "wallet",
+    "tags": [
+      "geld",
+      "budget",
+      "wallet"
+    ],
+    "url": "/icons/lucide/wallet.svg"
+  },
+  {
+    "id": "waves",
+    "kind": "lucide",
+    "label": "waves",
+    "tags": [
+      "meer",
+      "wasser",
+      "waves"
+    ],
+    "url": "/icons/lucide/waves.svg"
+  },
+  {
+    "id": "wheat",
+    "kind": "lucide",
+    "label": "wheat",
+    "tags": [
+      "landwirtschaft",
+      "getreide",
+      "wheat"
+    ],
+    "url": "/icons/lucide/wheat.svg"
+  },
+  {
+    "id": "wifi",
+    "kind": "lucide",
+    "label": "wifi",
+    "tags": [
+      "netz",
+      "internet",
+      "wifi"
+    ],
+    "url": "/icons/lucide/wifi.svg"
+  },
+  {
+    "id": "wind",
+    "kind": "lucide",
+    "label": "wind",
+    "tags": [
+      "luft",
+      "wetter",
+      "wind"
+    ],
+    "url": "/icons/lucide/wind.svg"
+  },
+  {
+    "id": "wine",
+    "kind": "lucide",
+    "label": "wine",
+    "tags": [
+      "getränk",
+      "wine"
+    ],
+    "url": "/icons/lucide/wine.svg"
+  },
+  {
+    "id": "wrench",
+    "kind": "lucide",
+    "label": "wrench",
+    "tags": [
+      "werkzeug",
+      "reparatur",
+      "wrench"
+    ],
+    "url": "/icons/lucide/wrench.svg"
+  },
+  {
+    "id": "zap",
+    "kind": "lucide",
+    "label": "zap",
+    "tags": [
+      "energie",
+      "strom",
+      "schnell",
+      "zap"
+    ],
+    "url": "/icons/lucide/zap.svg"
+  }
+]

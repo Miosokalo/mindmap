@@ -26,6 +26,8 @@
       "properties": {
         "color": { "enum": ["color", "mono"] },
         "line": { "enum": ["curve", "straight", "elbow"] },
+        "dash": { "enum": ["solid", "dashed", "dotted", "dashdot"] },
+        "shape": { "enum": ["round", "rect", "pill", "ellipse", "diamond"] },
         "nodes": { "enum": ["mixed", "filled", "outline", "text"] },
         "layout": {
           "enum": ["around", "horizontal", "vertical", "radial", "mixed"],
@@ -85,9 +87,22 @@
           "enum": ["curve", "straight", "elbow"],
           "description": "Form der ausgehenden Linien. Fehlt das Feld, gilt style.line."
         },
+        "dash": {
+          "enum": ["solid", "dashed", "dotted", "dashdot"],
+          "description": "Strichart der ausgehenden Linien. Fehlt das Feld, gilt style.dash, sonst durchgezogen."
+        },
+        "shape": {
+          "enum": ["round", "rect", "pill", "ellipse", "diamond"],
+          "description": "Rahmenform dieses Knotens. Fehlt das Feld, gilt style.shape, sonst abgerundet."
+        },
         "look": {
           "enum": ["mixed", "filled", "outline", "text"],
           "description": "Darstellung dieses Knotens. Fehlt das Feld, gilt style.nodes."
+        },
+        "icon": {
+          "type": ["string", "null"],
+          "description": "Icon-Referenz: lucide:<name>, gen:<id>, oder null/fehlend für kein Icon.",
+          "maxLength": 80
         },
         "reach": {
           "type": "number",

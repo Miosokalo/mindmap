@@ -382,8 +382,50 @@ button:hover {
 }
 
 .node-text {
+  position: relative;
+  z-index: 1;
   outline: none;
   white-space: nowrap;
+}
+
+.node.has-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+}
+
+.node-icon {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.node.leaf .node-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.node.leaf.has-icon {
+  gap: 4px;
+}
+
+#style-icons-ai:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.node-frame {
+  position: absolute;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  overflow: visible;
+  pointer-events: none;
 }
 
 /* ---------- Chat-Panel ---------- */
@@ -526,6 +568,70 @@ button.ai-fab[aria-expanded="true"] .ai-spark {
   align-self: flex-start;
   background: rgba(159, 18, 57, 0.08);
   color: var(--danger);
+}
+
+.chat-message.review-pending {
+  border: 1px dashed rgba(13, 100, 94, 0.28);
+}
+
+/* ---------- Qualitätskontrolle (Popup nach Chat-Änderung) ---------- */
+
+#review-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(28, 25, 23, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+#review-dialog[hidden] {
+  display: none;
+}
+
+.review-card {
+  width: min(440px, 100%);
+  padding: 22px 24px;
+  border: 1px solid rgba(28, 25, 23, 0.14);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.review-card h3 {
+  margin: 0 0 10px;
+}
+
+.review-reason {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(13, 100, 94, 0.08);
+  color: #134e4a;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.review-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.review-apply {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 #chat-form {

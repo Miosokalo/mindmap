@@ -288,6 +288,55 @@ button:hover {
   cursor: grabbing;
 }
 
+#node-actions {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform-origin: 0 0;
+  pointer-events: auto;
+  user-select: none;
+}
+
+#node-actions button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  line-height: 1;
+  touch-action: none;
+}
+
+#node-add {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+#node-delete svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+#node-delete.armed {
+  width: auto;
+  padding: 0 12px;
+  background: var(--danger);
+  color: #fffdf8;
+  border-color: var(--danger);
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  font-size: 0.82rem;
+}
+
+#node-delete.armed:hover {
+  color: #fffdf8;
+  border-color: var(--danger);
+}
+
 .node {
   position: absolute;
   width: max-content;

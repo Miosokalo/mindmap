@@ -18,10 +18,11 @@ const nodesEl = document.getElementById("nodes");
 const ANCHOR_HOVER_ZOOM = 0.8;
 const ANCHOR_HOVER_PX = 18;
 
-let state = loadState();
+let state = null;
 let drag = null;
 let anchorEdgeId = null;
 let hoverEdgeId = null;
+let confirmDeleteId = null;
 
 function defaultStyle() {
   return { color: "color", line: "curve", nodes: "mixed", layout: "around" };
@@ -60,6 +61,7 @@ function loadState() {
     if (styled.mapVersion !== MAP_VERSION) {
       styled.mapVersion = MAP_VERSION;
       styled.centered = false;
+      state = styled;
       relayoutCollided(styled.nodes, styled.style, "root");
     }
     return styled;
@@ -71,8 +73,7 @@ function loadState() {
 function freshState() {
   const style = defaultStyle();
   const nodes = buildTreeNodes(PFLANZENSCHUTZ);
-  relayoutCollided(nodes, style, "root");
-  return {
+  state = {
     panX: 0,
     panY: 0,
     zoom: 1,
@@ -84,6 +85,8 @@ function freshState() {
     showAnchors: true,
     mapVersion: MAP_VERSION,
   };
+  relayoutCollided(nodes, style, "root");
+  return state;
 }
 
 function textWidth(text, branch) {
@@ -115,8 +118,15 @@ function applyTransform() {
   world.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
 }
 
+function viewportReady() {
+  if (!viewport || viewport.hidden) return false;
+  const rect = viewport.getBoundingClientRect();
+  return rect.width > 40 && rect.height > 40;
+}
+
 function centerIfNeeded() {
   if (state.centered) return;
+  if (!viewportReady()) return;
   const rect = viewport.getBoundingClientRect();
   let minX = Infinity;
   let minY = Infinity;
@@ -140,6 +150,7 @@ function centerIfNeeded() {
   state.panY = rect.height / 2 - ((minY + maxY) / 2) * state.zoom;
   state.centered = true;
   saveState();
+  applyTransform();
 }
 
 function render() {
@@ -147,6 +158,7 @@ function render() {
   renderNodes();
   renderEdges();
   renderPorts();
+  placeNodeActions();
   syncStyleControls();
 }
 
@@ -692,7 +704,14 @@ function outgoingGeometry(parent, node, evenMap) {
     geo = { start, end, d: edgePath(start, end, kind, PORT_NORMAL[port.side]) };
   } else geo = classicEdge(parent, node, parentBox, childBox, kind);
   geo.d = routeClear(geo.start, geo.end, geo.d, new Set([parent.id, node.id]));
-  return geo;
+  return clipGeometryToNodes(geo, parent, node);
+}
+
+function clipGeometryToNodes(geo, parent, node) {
+  if (!geo || typeof clipEdgeToShapes !== "function") return geo;
+  const clipped = clipEdgeToShapes(geo.d, nodeShape(parent), nodeShape(node));
+  if (!clipped) return geo;
+  return { start: clipped.start, end: clipped.end, d: clipped.d };
 }
 
 // Kante genau so berechnen, wie sie gezeichnet wird — eine einzige Quelle
@@ -744,7 +763,7 @@ function renderEdges() {
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", effectiveColorMode(parent) === "mono" ? "#2f2f2f" : palette.stroke);
     path.setAttribute("stroke-width", "2.25");
-    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linecap", "butt");
     path.setAttribute("stroke-linejoin", "round");
     path.style.pointerEvents = "none";
     fragment.append(path);
@@ -825,7 +844,68 @@ function updateAnchorHover(clientX, clientY) {
   renderPorts();
 }
 
+function placeNodeActions() {
+  const bar = document.getElementById("node-actions");
+  if (!bar) return;
+  const node = state.nodes[state.selectedId];
+  const editing = document.querySelector(".node.editing");
+  if (!node || editing || !viewportReady()) {
+    bar.hidden = true;
+    return;
+  }
+  const del = document.getElementById("node-delete");
+  const armed = confirmDeleteId === node.id && node.id !== "root";
+  if (confirmDeleteId && !armed) confirmDeleteId = null;
+  if (del) {
+    del.hidden = node.id === "root";
+    del.classList.toggle("armed", armed);
+    const icon = del.querySelector(".node-delete-icon");
+    const label = del.querySelector(".node-delete-label");
+    if (icon) icon.hidden = armed;
+    if (label) label.hidden = !armed;
+    del.title = armed ? "Zum Löschen erneut klicken" : "Löschen";
+    del.setAttribute("aria-label", armed ? "Löschen bestätigen" : "Löschen");
+  }
+  bar.hidden = false;
+  const el = nodesEl.querySelector(`[data-id="${node.id}"]`);
+  const height = el && el.offsetHeight ? el.offsetHeight : node.h || 22;
+  bar.style.left = `${node.x}px`;
+  bar.style.top = `${node.y - height / 2}px`;
+  const scale = 1 / Math.max(state.zoom, 0.05);
+  const barW = bar.offsetWidth || 32;
+  const barH = bar.offsetHeight || 32;
+  bar.style.transformOrigin = "0 0";
+  bar.style.transform = `translate(${(-barW * scale) / 2}px, ${-(barH + 8) * scale}px) scale(${scale})`;
+}
+
+function bindNodeActions() {
+  const bar = document.getElementById("node-actions");
+  const add = document.getElementById("node-add");
+  const del = document.getElementById("node-delete");
+  if (!bar || !add || !del) return;
+  bar.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+  });
+  add.addEventListener("click", (event) => {
+    event.stopPropagation();
+    confirmDeleteId = null;
+    addChild(state.selectedId || "root");
+  });
+  del.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const id = state.selectedId;
+    if (!id || id === "root" || !state.nodes[id]) return;
+    if (confirmDeleteId !== id) {
+      confirmDeleteId = id;
+      placeNodeActions();
+      return;
+    }
+    deleteNode(id);
+  });
+}
+
 function selectNode(id) {
+  if (confirmDeleteId && confirmDeleteId !== id) confirmDeleteId = null;
   state.selectedId = id;
   saveState();
   render();
@@ -864,17 +944,24 @@ function addChild(parentId) {
 
 function deleteNode(id) {
   if (!id || id === "root" || !state.nodes[id]) return;
-  const drop = new Set();
-  const walk = (current) => {
-    drop.add(current);
-    for (const child of childrenOf(current)) walk(child.id);
-  };
-  walk(id);
-  for (const gone of drop) delete state.nodes[gone];
-  if (drop.has(anchorEdgeId)) anchorEdgeId = null;
-  if (drop.has(hoverEdgeId)) hoverEdgeId = null;
-  state.selectedId = state.nodes[state.selectedId] ? state.selectedId : "root";
-  if (drop.has(state.selectedId)) state.selectedId = "root";
+  const parentId = state.nodes[id].parentId;
+  if (!parentId || !state.nodes[parentId]) return;
+  const siblings = childrenOf(parentId);
+  const index = siblings.findIndex((item) => item.id === id);
+  const kids = childrenOf(id);
+  const next = siblings.slice(0, Math.max(0, index)).concat(kids, siblings.slice(index + 1));
+  for (const child of kids) {
+    child.parentId = parentId;
+    delete child.port;
+  }
+  next.forEach((child, order) => {
+    child.order = order;
+  });
+  delete state.nodes[id];
+  if (anchorEdgeId === id) anchorEdgeId = null;
+  if (hoverEdgeId === id) hoverEdgeId = null;
+  confirmDeleteId = null;
+  state.selectedId = parentId;
   saveState();
   render();
 }
@@ -901,6 +988,8 @@ function beginEdit(id, textEl) {
     return;
   }
   card.classList.add("editing");
+  confirmDeleteId = null;
+  placeNodeActions();
   textEl.contentEditable = "true";
   selectAllText(textEl);
   const again = requestAnimationFrame(() => selectAllText(textEl));
@@ -912,6 +1001,7 @@ function beginEdit(id, textEl) {
     node.text = textEl.textContent.trim() || "…";
     textEl.textContent = node.text;
     saveState();
+    placeNodeActions();
     textEl.removeEventListener("blur", finish);
     textEl.removeEventListener("keydown", onKey);
   };
@@ -935,6 +1025,7 @@ function onNodePointerDown(event, id) {
   if (event.button !== 0) return;
   if (event.target.isContentEditable) return;
   event.stopPropagation();
+  confirmDeleteId = null;
   state.selectedId = id;
   if (event.detail >= 2) {
     event.preventDefault();
@@ -957,12 +1048,17 @@ function onNodePointerDown(event, id) {
   event.currentTarget.classList.add("selected");
   syncStyleControls();
   renderPorts();
+  placeNodeActions();
   event.currentTarget.setPointerCapture(event.pointerId);
 }
 
 viewport.addEventListener("pointerdown", (event) => {
   if (event.button !== 0) return;
-  if (event.target.closest(".node, .port, .edge-hit")) return;
+  if (event.target.closest(".node, .port, .edge-hit, #node-actions")) return;
+  if (confirmDeleteId) {
+    confirmDeleteId = null;
+    placeNodeActions();
+  }
   if (anchorEdgeId) {
     anchorEdgeId = null;
     renderPorts();
@@ -1015,6 +1111,7 @@ window.addEventListener("pointermove", (event) => {
   }
   renderEdges();
   renderPorts();
+  placeNodeActions();
 });
 
 function clientToWorld(clientX, clientY) {
@@ -1084,6 +1181,7 @@ viewport.addEventListener(
     state.panX = px - worldX * state.zoom;
     state.panY = py - worldY * state.zoom;
     applyTransform();
+    placeNodeActions();
     if (state.zoom < ANCHOR_HOVER_ZOOM && hoverEdgeId) {
       hoverEdgeId = null;
       renderPorts();
@@ -1321,6 +1419,10 @@ window.addEventListener("keydown", (event) => {
     if (el) beginEdit(state.selectedId, el);
   } else if (event.key === "Escape") {
     closeDownloadMenu();
+    if (confirmDeleteId) {
+      confirmDeleteId = null;
+      placeNodeActions();
+    }
   }
 });
 
@@ -1462,7 +1564,7 @@ function renderMapCanvas() {
     }
   }
 
-  ctx.lineCap = "round";
+  ctx.lineCap = "butt";
   ctx.lineJoin = "round";
   for (const pathEl of edges.querySelectorAll("path")) {
     if (pathEl.dataset.edge) continue;
@@ -1578,6 +1680,16 @@ const Mindmap = {
 
 window.Mindmap = Mindmap;
 
+if (typeof ResizeObserver === "function") {
+  new ResizeObserver(() => {
+    if (!state || state.centered || !viewportReady()) return;
+    centerIfNeeded();
+    render();
+  }).observe(viewport);
+}
+
+state = loadState();
+bindNodeActions();
 centerIfNeeded();
 render();
 syncNodeSizes();

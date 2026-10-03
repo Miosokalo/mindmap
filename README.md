@@ -13,6 +13,7 @@ Dann `http://127.0.0.1:8777` öffnen.
 ## Bedienung
 
 - Knoten wählen, ziehen, per Doppelklick umbenennen
+- Über dem gewählten Knoten: **+** legt ein Kind an, der Mülleimer löscht erst beim zweiten Klick
 - **+ Kind** oder Tab legt einen Unterpunkt an
 - **Anordnen** liegt bei Layout und legt nur die ausgehenden Linien des ausgewählten Knotens neu. Der Knoten selbst bleibt, wo er steht. Der Bereich ändert daran nichts
 - **Bereich** gilt für Farbe, Linienform, Strichlänge, Knotendarstellung und Anordnung
@@ -25,7 +26,7 @@ Dann `http://127.0.0.1:8777` öffnen.
 - **Gleichmäßig** legt die Striche wie eine Sonne in den freien Bogen: rechts, schräg, oben, schräg links und links, soweit dort Platz ist und nicht der Elternknoten steht
 - **Weiter** lässt die Unterpunkte in der Richtung des Elternknotens weiterlaufen
 - Oben–Unten setzt die Striche an die Ober- und Unterkante, die Wörter stehen darüber oder darunter
-- Entf löscht den gewählten Knoten, nicht die Wurzel
+- Entf löscht den gewählten Knoten, nicht die Wurzel. Die Kinder bleiben und hängen danach an seinem Elternknoten
 
 ## Für andere Agents
 

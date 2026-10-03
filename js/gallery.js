@@ -41,6 +41,26 @@
 
   // ---------- Ansichten ----------
 
+  function viewportReady() {
+    const rect = viewport.getBoundingClientRect();
+    return !viewport.hidden && rect.width > 40 && rect.height > 40;
+  }
+
+  function whenViewportReady(fn) {
+    const run = () => {
+      if (!viewportReady()) return false;
+      fn();
+      return true;
+    };
+    if (run()) return;
+    let frames = 0;
+    const tick = () => {
+      if (run() || frames++ > 30) return;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   function showStart() {
     startEl.hidden = false;
     topbar.hidden = true;
@@ -52,15 +72,19 @@
     loadGallery();
   }
 
-  function showEditor() {
+  function showEditor(after) {
     startEl.hidden = true;
     topbar.hidden = false;
     if (layoutbar) layoutbar.hidden = false;
     viewport.hidden = false;
     viewport.style.display = "";
-    // Kopie-Banner nur zeigen, wenn gerade eine lokal geöffnete Galerie-Kopie
-    // bearbeitet wird — die veröffentlichte Karte selbst bleibt unberührt.
     viewBanner.hidden = !copyOfTitle;
+    if (state && state.zoom <= 0.051) state.centered = false;
+    whenViewportReady(() => {
+      centerIfNeeded();
+      render();
+      if (after) after();
+    });
   }
 
   // ---------- Eigene Karte ----------
@@ -99,10 +123,10 @@
     });
     Mindmap.relayout("root");
     state.centered = false;
-    centerIfNeeded();
-    showEditor();
-    const rootText = document.querySelector('[data-id="root"] .node-text');
-    if (rootText) beginEdit("root", rootText);
+    showEditor(() => {
+      const rootText = document.querySelector('[data-id="root"] .node-text');
+      if (rootText) beginEdit("root", rootText);
+    });
   }
 
   // ---------- Galerie ----------
@@ -162,7 +186,6 @@
       Mindmap.setDocument(data.document);
       Mindmap.relayout("root");
       state.centered = false;
-      centerIfNeeded();
       showEditor();
       toast("Lokale Kopie geöffnet — bearbeite sie frei. Die veröffentlichte Karte bleibt unverändert.");
     } catch (err) {

@@ -360,7 +360,7 @@ Der Nutzer beschreibt Änderungen an seiner Mindmap. Du antwortest IMMER und NUR
 Mögliche Ops (werden in der Reihenfolge ausgeführt):
 - {"op":"add","parentId":"<id eines vorhandenen Knotens>","text":"<kurzer Knotentext>","color":"gold|green|cyan|blue|orange"}
 - {"op":"rename","id":"<vorhandene id>","text":"<neuer Text>"}
-- {"op":"delete","id":"<vorhandene id, nie root>"}   (löscht den Knoten mit allen Nachkommen)
+- {"op":"delete","id":"<vorhandene id, nie root>"}   (löscht nur diesen Knoten; direkte Kinder hängen danach an seinem Elternknoten)
 - {"op":"move","id":"<vorhandene id>","newParentId":"<vorhandene id>"}
 - {"op":"style","style":{"color":"color|mono","line":"curve|straight|elbow","nodes":"mixed|filled|outline|text","layout":"horizontal|vertical|around|radial|mixed"}}
 - {"op":"relayout"}   (ordnet die Karte neu an)

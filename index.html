@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css?v=42" />
+    <link rel="stylesheet" href="css/app.css?v=43" />
   </head>
   <body>
     <div id="start" hidden>
@@ -136,6 +136,27 @@
         <div id="ports"></div>
         <div id="node-actions" hidden>
           <button type="button" id="node-add" title="Kind hinzufügen" aria-label="Kind hinzufügen">+</button>
+          <button type="button" id="node-icon" title="Icon hinzufügen" aria-label="Icon hinzufügen" aria-pressed="false">
+            <svg class="node-icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"
+              />
+              <circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none" />
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m7.5 16 3.2-3.4a1.2 1.2 0 0 1 1.7 0L16 16l1.2-1.2a1.2 1.2 0 0 1 1.6 0L20 16"
+              />
+            </svg>
+          </button>
           <button type="button" id="node-delete" title="Löschen" aria-label="Löschen">
             <svg class="node-delete-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -216,6 +237,31 @@
         </div>
       </div>
     </div>
+    <div id="icon-pick-dialog" hidden>
+      <div class="icon-pick-card" role="dialog" aria-modal="true" aria-labelledby="icon-pick-title">
+        <h3 id="icon-pick-title">Icon für diesen Knoten</h3>
+        <p class="icon-pick-lead">Wie soll das Icon gesetzt werden?</p>
+        <div id="icon-pick-source" class="icon-pick-source">
+          <button type="button" id="icon-pick-ai" class="icon-pick-choice">Per KI vorschlagen</button>
+          <button type="button" id="icon-pick-image" class="icon-pick-choice">Bild auswählen …</button>
+        </div>
+        <div id="icon-pick-image-source" class="icon-pick-source" hidden>
+          <button type="button" id="icon-pick-gallery" class="icon-pick-choice">Aus Galerie wählen</button>
+          <button type="button" id="icon-pick-file" class="icon-pick-choice">Datei vom Computer</button>
+          <button type="button" id="icon-pick-back" class="icon-pick-back">Zurück</button>
+        </div>
+        <div id="icon-pick-gallery-panel" class="icon-pick-gallery" hidden>
+          <input id="icon-pick-search" type="search" placeholder="Icons durchsuchen …" autocomplete="off" />
+          <div id="icon-pick-grid" class="icon-pick-grid" role="listbox" aria-label="Icon-Galerie"></div>
+          <button type="button" id="icon-pick-gallery-back" class="icon-pick-back">Zurück</button>
+        </div>
+        <p id="icon-pick-status" class="icon-pick-status" hidden></p>
+        <div class="icon-pick-actions">
+          <button type="button" id="icon-pick-cancel">Abbrechen</button>
+        </div>
+        <input id="icon-pick-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" hidden />
+      </div>
+    </div>
     <div id="publish-dialog" hidden>
       <div class="publish-card">
         <h3>Karte veröffentlichen</h3>
@@ -241,8 +287,8 @@
     <script src="js/layout.js?v=34"></script>
     <script src="js/collider.js?v=2"></script>
     <script src="js/shape.js?v=2"></script>
-    <script src="js/app.js?v=51"></script>
-    <script src="js/chat.js?v=28"></script>
+    <script src="js/app.js?v=53"></script>
+    <script src="js/chat.js?v=29"></script>
     <script src="js/gallery.js?v=26"></script>
   </body>
 </html>

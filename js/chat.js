@@ -306,7 +306,11 @@
     const { ops, reason } = pendingReview;
     pendingReview = null;
     hideReviewDialog();
-    const { summary, skipped } = applyOps(ops || []);
+    if (typeof Mindmap.pushHistory === "function") Mindmap.pushHistory();
+    const { summary, skipped } =
+      typeof Mindmap.withoutHistory === "function"
+        ? Mindmap.withoutHistory(() => applyOps(ops || []))
+        : applyOps(ops || []);
     const changes = summarize(summary);
     let text = "Korrektur übernommen.";
     if (reason) text += ` ${reason}`;
@@ -386,14 +390,19 @@
       const rawOps = data.ops || [];
       const firstPass = rawOps.filter((op) => !(op && op.op === "icon" && op.icon === "auto"));
       const autoOps = rawOps.filter((op) => op && op.op === "icon" && op.icon === "auto");
-      const applied = applyOps(firstPass);
+      if (typeof Mindmap.pushHistory === "function" && (firstPass.length || autoOps.length)) {
+        Mindmap.pushHistory();
+      }
+      const runApply = (ops) =>
+        typeof Mindmap.withoutHistory === "function" ? Mindmap.withoutHistory(() => applyOps(ops)) : applyOps(ops);
+      const applied = runApply(firstPass);
       let summary = applied.summary;
       let skipped = applied.skipped;
       let structural = applied.structural;
       if (autoOps.length) {
         const resolved = await resolveAutoIconOps(autoOps);
         if (resolved.length) {
-          const second = applyOps(resolved);
+          const second = runApply(resolved);
           summary = {
             ...summary,
             icons: (summary.icons || 0) + (second.summary.icons || 0),

@@ -1,6 +1,29 @@
 ---
-zuletztAktualisiert: "2026-10-04T01:11:26+02:00"
+zuleztAktualisiert: "2026-10-04T01:32:00+02:00"
 ---
+
+## Undo/Redo Strg+Z/Y (2026-10-04)
+
+- **Erledigt:** Verlaufsstapel (max. 50) für Kartenänderungen. **Strg+Z** rückgängig, **Strg+Y** / **Strg+Umschalt+Z** wiederherstellen. Greift bei Knoten, Text, Stil, Icons, Anordnen, Ziehen, Chat (ein Schritt pro Assistenten-Antwort). Pan/Zoom und Auswahl ohne Eintrag. Neue Karte leert den Verlauf.
+- **Code:** `js/app.js`, `js/chat.js`, `index.html`, `README.md`.
+- **Deploy:** Image `webstack-mindmap` neu gebaut.
+- **Offen:** Commit noch offen.
+
+## Icon pro Knoten (Popup) (2026-10-04)
+
+- **Erledigt:** Am Knoten-Popup (+ / Löschen) neuer Button **Icon**: ohne Icon → Dialog KI oder Bild (Galerie / Datei vom PC); mit Icon → Entfernen. Galerie durchsuchbar; Datei wird clientseitig zu PNG und per `POST /api/icons/upload` als `gen:<id>` gespeichert.
+- **Code:** `index.html`, `css/app.css`, `js/app.js`, `api/server.mjs`, `README.md`.
+- **Deploy:** Images neu gebaut/gestartet.
+- **Prüfung:** Galerie → `lucide:wind`; Entfernen; KI → `lucide:atom`; Upload API 200.
+- **Offen:** Commit noch offen.
+
+## Live-Retest KI + Sprache/Scope (2026-10-04)
+
+- **Erledigt:** Live-Test Chat/Icons/Verzaubern/Review. Chat + Review ok; Icons (KI) auf Scope children setzt passende Lucide-Icons. Verzaubern zeigt klaren Hinweis bei fehlendem OpenRouter-Guthaben (402). Qualitätsfix: gemischt englische Stichworte trotz deutschem Auftrag; neuer Map behielt alten Style-Bereich. Prompt: Knotentexte in Auftragssprache; Review erkennt falsche Sprache. `setDocument` setzt Scope auf `node` zurück.
+- **Prüfung:** Photosynthese-Chat → deutsche Labels, Kontrolle ok, 6 Icons. API Kreislaufwirtschaft → „Reduzieren/Wiederverwenden/Recyceln“, „Biologischer/Technischer Kreislauf“. Scope subtree → neue Karte → UI „Nur Auswahl“.
+- **Code:** `api/server.mjs`, `js/app.js`.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
+- **Offen:** Image-Gen/Verzaubern braucht OpenRouter-Credits; Commit der Fixes noch offen.
 
 ## Verzaubern-Button (2026-10-04)
 
@@ -45,24 +68,4 @@ zuletztAktualisiert: "2026-10-04T01:11:26+02:00"
 
 - **Erledigt:** „Das Modell hat zu lange gebraucht“ kam, weil DeepSeek die Minute im Denkfeld verbracht hat und der Antworttext leer blieb. Der Aufruf schaltet das Denkfeld aus. Nachträge wie „tiefer“ ergänzen nur zwei, drei Äste, statt die Karte neu zu bauen.
 - **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut (Assistenten-Knopf und Timeout-Fix).
-
-## Assistenten-Knopf (2026-10-03)
-
-- **Erledigt:** „Chat“ aus der Kopfleiste entfernt. Unten rechts ein runder, funkelnder Knopf; Klick öffnet und schließt das Panel. In der Galerie bleibt er aus.
-- **Code:** `index.html`, `css/app.css`, `js/chat.js`, `js/gallery.js`, `README.md`.
-- **Deploy:** zusammen mit dem Timeout-Fix ausgeliefert.
-
-## Chat-Antwort lesen (2026-10-03)
-
-- **Erledigt:** „Antwort vom Modell konnte nicht gelesen werden“ kam, wenn das JSON nicht im normalen Text stand (DeepSeek legt es oft ins Feld `reasoning`) oder von Fließtext umgeben war. Der Server liest jetzt beide Felder und sucht das Objekt klammergenau. Zusätzlich verlangt der Aufruf `response_format: json_object`, das Zeitlimit ist 60 s.
-- **Prüfung:** Live `POST /api/chat` „erstelle mir eine mindmap zum thema walfang“ → 200, 18 Ops, Wurzel Walfang, kein „Neu“. Log: `ops=18 stop`.
-- **Deploy:** Image `webstack-mindmap-api` neu gebaut und gestartet. Im selben Commit wie der übrige Chat-Stand.
-- **Code:** `api/server.mjs`.
-
-## Inhaltlich gute Mindmaps (2026-10-03)
-
-- **Erledigt:** Chat legt Knoten still an, der Text bleibt (nicht mehr „Neu“). `add.ref` verkettet Eltern in einer Antwort, höchstens vier Ebenen. Prompt: Stichwort-Baum, ungleiche Tiefe, Platzhalter ersetzen, kein Stil ohne Auftrag.
-- **Prüfung:** Auftrag Klimaschutz an die laufende API: Wurzel Klimaschutz, ein tiefer Ast (Energie), die anderen flach, kein „Neu“, keine Stil-Ops. Plus-Knopf öffnet weiter die Eingabe.
-- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet. Im selben Commit wie der übrige Chat-Stand.
-- **Code:** `js/app.js`, `js/chat.js`, `api/server.mjs`, `schema/mindmap.ops.json`, `index.html`, `README.md`.
 

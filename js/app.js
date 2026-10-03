@@ -24,6 +24,12 @@ let anchorEdgeId = null;
 let hoverEdgeId = null;
 let confirmDeleteId = null;
 
+const HISTORY_MAX = 50;
+let undoStack = [];
+let redoStack = [];
+let historyPaused = false;
+let historySuppress = 0;
+
 const NODE_SHAPE_VALUES = ["round", "rect", "pill", "ellipse", "diamond"];
 const LINE_DASH_VALUES = ["solid", "dashed", "dotted", "dashdot"];
 const LINE_DASHARRAY = {
@@ -150,6 +156,77 @@ function showAppToast(text) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function snapshotHistory() {
+  return {
+    nodes: JSON.parse(JSON.stringify(state.nodes)),
+    style: { ...state.style },
+    selectedId: state.selectedId,
+    scope: parseScope(state.scope),
+    showAnchors: state.showAnchors !== false,
+  };
+}
+
+function clearHistory() {
+  undoStack = [];
+  redoStack = [];
+}
+
+function pushHistorySnapshot(snap) {
+  if (historyPaused || historySuppress || !snap) return;
+  undoStack.push(snap);
+  if (undoStack.length > HISTORY_MAX) undoStack.shift();
+  redoStack = [];
+}
+
+function pushHistory() {
+  if (historyPaused || historySuppress || !state) return;
+  pushHistorySnapshot(snapshotHistory());
+}
+
+function withoutHistory(fn) {
+  historySuppress += 1;
+  try {
+    return fn();
+  } finally {
+    historySuppress -= 1;
+  }
+}
+
+function restoreHistorySnapshot(snap) {
+  if (!snap || !snap.nodes || !snap.nodes.root) return;
+  historyPaused = true;
+  state.nodes = JSON.parse(JSON.stringify(snap.nodes));
+  state.style = withStyle({ style: snap.style || {} }).style;
+  state.selectedId = snap.selectedId && state.nodes[snap.selectedId] ? snap.selectedId : "root";
+  state.scope = parseScope(snap.scope);
+  state.showAnchors = snap.showAnchors !== false;
+  confirmDeleteId = null;
+  syncStyleControls();
+  saveState();
+  render();
+  historyPaused = false;
+}
+
+function undo() {
+  if (!undoStack.length || !state) return false;
+  const current = snapshotHistory();
+  const snap = undoStack.pop();
+  redoStack.push(current);
+  if (redoStack.length > HISTORY_MAX) redoStack.shift();
+  restoreHistorySnapshot(snap);
+  return true;
+}
+
+function redo() {
+  if (!redoStack.length || !state) return false;
+  const current = snapshotHistory();
+  const snap = redoStack.pop();
+  undoStack.push(current);
+  if (undoStack.length > HISTORY_MAX) undoStack.shift();
+  restoreHistorySnapshot(snap);
+  return true;
 }
 
 function uid() {
@@ -949,6 +1026,7 @@ function placeNodeActions() {
     return;
   }
   const del = document.getElementById("node-delete");
+  const iconBtn = document.getElementById("node-icon");
   const armed = confirmDeleteId === node.id && node.id !== "root";
   if (confirmDeleteId && !armed) confirmDeleteId = null;
   if (del) {
@@ -960,6 +1038,13 @@ function placeNodeActions() {
     if (label) label.hidden = !armed;
     del.title = armed ? "Zum Löschen erneut klicken" : "Löschen";
     del.setAttribute("aria-label", armed ? "Löschen bestätigen" : "Löschen");
+  }
+  if (iconBtn) {
+    const hasIcon = !!parseIconRef(node.icon);
+    iconBtn.classList.toggle("has-icon", hasIcon);
+    iconBtn.setAttribute("aria-pressed", hasIcon ? "true" : "false");
+    iconBtn.title = hasIcon ? "Icon entfernen" : "Icon hinzufügen";
+    iconBtn.setAttribute("aria-label", hasIcon ? "Icon entfernen" : "Icon hinzufügen");
   }
   bar.hidden = false;
   const el = nodesEl.querySelector(`[data-id="${node.id}"]`);
@@ -973,9 +1058,24 @@ function placeNodeActions() {
   bar.style.transform = `translate(${(-barW * scale) / 2}px, ${-(barH + 8) * scale}px) scale(${scale})`;
 }
 
+function clearNodeIcon(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node || !parseIconRef(node.icon)) return false;
+  pushHistory();
+  delete node.icon;
+  node.w = textWidth(node.text, !!node.parentId, node);
+  relayoutCollided(state.nodes, state.style, "root");
+  state.centered = false;
+  centerIfNeeded();
+  saveState();
+  render();
+  return true;
+}
+
 function bindNodeActions() {
   const bar = document.getElementById("node-actions");
   const add = document.getElementById("node-add");
+  const iconBtn = document.getElementById("node-icon");
   const del = document.getElementById("node-delete");
   if (!bar || !add || !del) return;
   bar.addEventListener("pointerdown", (event) => {
@@ -986,6 +1086,21 @@ function bindNodeActions() {
     confirmDeleteId = null;
     addChild(state.selectedId || "root");
   });
+  if (iconBtn) {
+    iconBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      confirmDeleteId = null;
+      const id = state.selectedId;
+      const node = id ? state.nodes[id] : null;
+      if (!node) return;
+      if (parseIconRef(node.icon)) {
+        clearNodeIcon(id);
+        showAppToast("Icon entfernt");
+        return;
+      }
+      openIconPickDialog(id);
+    });
+  }
   del.addEventListener("click", (event) => {
     event.stopPropagation();
     const id = state.selectedId;
@@ -1011,6 +1126,7 @@ function addChild(parentId, options) {
   if (!parent) return null;
   const opts = options && typeof options === "object" ? options : {};
   const silent = opts.silent === true;
+  if (!silent) pushHistory();
   const label = typeof opts.text === "string" && opts.text.trim() ? opts.text.trim().slice(0, 200) : "Neu";
   const siblings = childrenOf(parentId);
   const id = uid();
@@ -1048,6 +1164,7 @@ function deleteNode(id) {
   if (!id || id === "root" || !state.nodes[id]) return;
   const parentId = state.nodes[id].parentId;
   if (!parentId || !state.nodes[parentId]) return;
+  pushHistory();
   const siblings = childrenOf(parentId);
   const index = siblings.findIndex((item) => item.id === id);
   const kids = childrenOf(id);
@@ -1096,14 +1213,21 @@ function beginEdit(id, textEl) {
   selectAllText(textEl);
   const again = requestAnimationFrame(() => selectAllText(textEl));
   textEl.addEventListener("keydown", () => cancelAnimationFrame(again), { once: true });
+  const beforeEdit = snapshotHistory();
 
   const finish = () => {
     textEl.contentEditable = "false";
     card.classList.remove("editing");
-    node.text = textEl.textContent.trim() || "…";
+    const next = textEl.textContent.trim() || "…";
+    if (next !== node.text) {
+      pushHistorySnapshot(beforeEdit);
+      node.text = next;
+      node.w = textWidth(node.text, !!node.parentId, node);
+    }
     textEl.textContent = node.text;
     saveState();
     placeNodeActions();
+    render();
     textEl.removeEventListener("blur", finish);
     textEl.removeEventListener("keydown", onKey);
   };
@@ -1145,6 +1269,7 @@ function onNodePointerDown(event, id) {
     originY: event.clientY,
     nodeX: node.x,
     nodeY: node.y,
+    beforeSnap: snapshotHistory(),
   };
   for (const el of nodesEl.querySelectorAll(".node.selected")) el.classList.remove("selected");
   event.currentTarget.classList.add("selected");
@@ -1194,6 +1319,7 @@ window.addEventListener("pointermove", (event) => {
     if (!parent || !child) return;
     const worldPoint = clientToWorld(event.clientX, event.clientY);
     child.port = nearestBorderPort(nodeBox(parent), worldPoint.x, worldPoint.y);
+    drag.portChanged = true;
     renderEdges();
     const handle = document.querySelector(`[data-port="${child.id}"]`);
     if (handle) {
@@ -1246,6 +1372,8 @@ function onPortPointerDown(event, childId) {
     childId,
     parentId: child.parentId,
     pointerId: event.pointerId,
+    beforeSnap: snapshotHistory(),
+    portChanged: false,
   };
   event.currentTarget.classList.add("dragging");
   event.currentTarget.setPointerCapture(event.pointerId);
@@ -1259,6 +1387,8 @@ window.addEventListener("pointerup", (event) => {
   }
   const movedNode = drag.kind === "node";
   const shifted = movedNode && Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY) > 4;
+  const portChanged = drag.kind === "port" && drag.portChanged;
+  if ((shifted || portChanged) && drag.beforeSnap) pushHistorySnapshot(drag.beforeSnap);
   viewport.classList.remove("panning");
   drag = null;
   if (shifted) {
@@ -1364,6 +1494,7 @@ function setNodeFlow(node, flow) {
 function applyStyleKey(nodeId, key, value) {
   const field = { color: "colorMode", line: "line", dash: "dash", shape: "shape", nodes: "look" }[key];
   if (!field) return;
+  pushHistory();
   for (const node of scopedNodes(nodeId)) node[field] = value;
 }
 
@@ -1379,6 +1510,7 @@ function applyReachSetting(nodeId, reach) {
 function applyArrangement(nodeId, flow) {
   const node = state.nodes[nodeId];
   if (!node) return;
+  pushHistory();
   for (const target of scopedNodes(nodeId)) setNodeFlow(target, flow);
   if (scopeIsDeep()) relayoutCollided(state.nodes, state.style, node.id);
   else {
@@ -1447,6 +1579,7 @@ let reachTargetId = null;
 const reachInput = document.getElementById("style-reach");
 reachInput.addEventListener("pointerdown", () => {
   reachTargetId = state.selectedId || "root";
+  pushHistory();
 });
 reachInput.addEventListener("input", () => {
   const targetId = reachTargetId || state.selectedId || "root";
@@ -1534,6 +1667,23 @@ if (downloadPdfButton) {
 window.addEventListener("keydown", (event) => {
   const editing = document.querySelector(".node-text[contenteditable='true']");
   if (editing) return;
+  const tag = event.target && event.target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || (event.target && event.target.isContentEditable)) return;
+  const mod = event.ctrlKey || event.metaKey;
+  if (mod && !event.altKey && String(event.key).toLowerCase() === "z" && !event.shiftKey) {
+    event.preventDefault();
+    undo();
+    return;
+  }
+  if (
+    mod &&
+    !event.altKey &&
+    (String(event.key).toLowerCase() === "y" || (String(event.key).toLowerCase() === "z" && event.shiftKey))
+  ) {
+    event.preventDefault();
+    redo();
+    return;
+  }
   if (event.key === "Tab") {
     event.preventDefault();
     addChild(state.selectedId || "root");
@@ -1940,17 +2090,26 @@ async function downloadPdf() {
 function applyNodeIcons(assignments) {
   if (!Array.isArray(assignments)) return 0;
   let count = 0;
+  let pushed = false;
   for (const item of assignments) {
     if (!item || typeof item.id !== "string") continue;
     const node = state.nodes[item.id];
     if (!node) continue;
     if (item.icon === null || item.icon === "") {
+      if (!pushed) {
+        pushHistory();
+        pushed = true;
+      }
       delete node.icon;
       count += 1;
       continue;
     }
     const icon = parseIconRef(item.icon);
     if (!icon) continue;
+    if (!pushed) {
+      pushHistory();
+      pushed = true;
+    }
     node.icon = icon;
     node.w = textWidth(node.text, !!node.parentId, node);
     count += 1;
@@ -1989,17 +2148,325 @@ async function assignIconsForScope(nodeId) {
   };
 }
 
+async function assignIconForNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node) throw new Error("Knoten nicht gefunden");
+  const res = await fetch("/api/icons/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      targets: [{ id: node.id, text: node.text }],
+      allowGenerate: true,
+    }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || data.error) {
+    throw new Error(data && data.error ? data.error : `Serverfehler (${res.status})`);
+  }
+  const n = applyNodeIcons(data.assignments || []);
+  return {
+    n,
+    created: (data.created || []).length,
+    model: data.model,
+    warnings: Array.isArray(data.warnings) ? data.warnings : [],
+  };
+}
+
+let iconCatalogCache = null;
+let iconPickTargetId = null;
+
+function iconPickEls() {
+  return {
+    dialog: document.getElementById("icon-pick-dialog"),
+    title: document.getElementById("icon-pick-title"),
+    lead: document.querySelector("#icon-pick-dialog .icon-pick-lead"),
+    source: document.getElementById("icon-pick-source"),
+    imageSource: document.getElementById("icon-pick-image-source"),
+    galleryPanel: document.getElementById("icon-pick-gallery-panel"),
+    grid: document.getElementById("icon-pick-grid"),
+    search: document.getElementById("icon-pick-search"),
+    status: document.getElementById("icon-pick-status"),
+    fileInput: document.getElementById("icon-pick-file-input"),
+    aiBtn: document.getElementById("icon-pick-ai"),
+    imageBtn: document.getElementById("icon-pick-image"),
+    galleryBtn: document.getElementById("icon-pick-gallery"),
+    fileBtn: document.getElementById("icon-pick-file"),
+    backBtn: document.getElementById("icon-pick-back"),
+    galleryBackBtn: document.getElementById("icon-pick-gallery-back"),
+    cancelBtn: document.getElementById("icon-pick-cancel"),
+  };
+}
+
+function setIconPickStatus(text, isError) {
+  const { status } = iconPickEls();
+  if (!status) return;
+  if (!text) {
+    status.hidden = true;
+    status.textContent = "";
+    status.classList.remove("error");
+    return;
+  }
+  status.hidden = false;
+  status.textContent = text;
+  status.classList.toggle("error", !!isError);
+}
+
+function showIconPickStep(step) {
+  const els = iconPickEls();
+  if (!els.source || !els.imageSource || !els.galleryPanel || !els.lead) return;
+  const isSource = step === "source";
+  const isImage = step === "image";
+  const isGallery = step === "gallery";
+  els.source.hidden = !isSource;
+  els.imageSource.hidden = !isImage;
+  els.galleryPanel.hidden = !isGallery;
+  els.lead.hidden = isGallery;
+  els.lead.textContent = isImage
+    ? "Bildquelle wählen:"
+    : "Wie soll das Icon gesetzt werden?";
+  if (!isGallery) setIconPickStatus("");
+}
+
+function closeIconPickDialog() {
+  const { dialog, fileInput } = iconPickEls();
+  if (dialog) dialog.hidden = true;
+  if (fileInput) fileInput.value = "";
+  iconPickTargetId = null;
+  showIconPickStep("source");
+  setIconPickStatus("");
+  const { aiBtn, imageBtn, galleryBtn, fileBtn } = iconPickEls();
+  for (const btn of [aiBtn, imageBtn, galleryBtn, fileBtn]) {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function openIconPickDialog(nodeId) {
+  const node = state.nodes[nodeId];
+  const { dialog, title } = iconPickEls();
+  if (!node || !dialog) return;
+  iconPickTargetId = nodeId;
+  if (title) title.textContent = `Icon für „${(node.text || "Knoten").slice(0, 40)}“`;
+  showIconPickStep("source");
+  setIconPickStatus("");
+  dialog.hidden = false;
+}
+
+async function loadIconCatalog() {
+  if (iconCatalogCache) return iconCatalogCache;
+  const res = await fetch("/api/icons");
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || !Array.isArray(data.icons)) {
+    throw new Error(data && data.error ? data.error : "Icon-Katalog nicht geladen");
+  }
+  iconCatalogCache = data.icons;
+  return iconCatalogCache;
+}
+
+function iconCatalogRef(item) {
+  if (!item || typeof item.id !== "string") return null;
+  if (item.kind === "lucide") return `lucide:${item.id}`;
+  if (item.kind === "gen") return `gen:${item.id}`;
+  return null;
+}
+
+function renderIconGallery(filter) {
+  const { grid } = iconPickEls();
+  if (!grid || !iconCatalogCache) return;
+  const q = String(filter || "")
+    .trim()
+    .toLowerCase();
+  const list = iconCatalogCache.filter((item) => {
+    if (!q) return true;
+    const hay = [item.id, item.label, ...(item.tags || [])].join(" ").toLowerCase();
+    return hay.includes(q);
+  });
+  grid.replaceChildren();
+  const frag = document.createDocumentFragment();
+  for (const item of list.slice(0, 240)) {
+    const ref = iconCatalogRef(item);
+    if (!ref) continue;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "icon-pick-item";
+    btn.setAttribute("role", "option");
+    btn.title = item.label || item.id;
+    btn.dataset.icon = ref;
+    const img = document.createElement("img");
+    img.src = item.url || iconUrl(ref);
+    img.alt = "";
+    img.loading = "lazy";
+    const span = document.createElement("span");
+    span.textContent = item.label || item.id;
+    btn.append(img, span);
+    frag.append(btn);
+  }
+  grid.append(frag);
+  if (!list.length) setIconPickStatus("Keine Icons gefunden.", true);
+  else setIconPickStatus(`${Math.min(list.length, 240)} Icons`);
+}
+
+async function openIconGalleryStep() {
+  showIconPickStep("gallery");
+  setIconPickStatus("Galerie wird geladen …");
+  const { search } = iconPickEls();
+  if (search) search.value = "";
+  try {
+    await loadIconCatalog();
+    renderIconGallery("");
+  } catch (err) {
+    setIconPickStatus(err && err.message ? err.message : "Galerie fehlgeschlagen", true);
+  }
+}
+
+function fileToPngDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) {
+      reject(new Error("Bitte eine Bilddatei wählen"));
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const size = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, size, size);
+      const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+      try {
+        resolve(canvas.toDataURL("image/png"));
+      } catch {
+        reject(new Error("Bild konnte nicht gelesen werden"));
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Bild konnte nicht geladen werden"));
+    };
+    img.src = url;
+  });
+}
+
+async function uploadNodeIcon(nodeId, dataUrl) {
+  const node = state.nodes[nodeId];
+  const res = await fetch("/api/icons/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image: dataUrl,
+      label: node ? node.text : "Upload",
+    }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || data.error || !data.icon) {
+    throw new Error(data && data.error ? data.error : `Upload fehlgeschlagen (${res.status})`);
+  }
+  if (data.entry) {
+    iconCatalogCache = null;
+  }
+  applyNodeIcons([{ id: nodeId, icon: data.icon }]);
+}
+
+function bindIconPickUi() {
+  const els = iconPickEls();
+  if (!els.dialog) return;
+
+  els.cancelBtn?.addEventListener("click", () => closeIconPickDialog());
+  els.dialog.addEventListener("click", (event) => {
+    if (event.target === els.dialog) closeIconPickDialog();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.dialog && !els.dialog.hidden) {
+      closeIconPickDialog();
+    }
+  });
+
+  els.imageBtn?.addEventListener("click", () => showIconPickStep("image"));
+  els.backBtn?.addEventListener("click", () => showIconPickStep("source"));
+  els.galleryBackBtn?.addEventListener("click", () => showIconPickStep("image"));
+  els.galleryBtn?.addEventListener("click", () => {
+    openIconGalleryStep().catch(() => {});
+  });
+
+  els.search?.addEventListener("input", () => {
+    renderIconGallery(els.search.value);
+  });
+
+  els.grid?.addEventListener("click", (event) => {
+    const btn = event.target.closest(".icon-pick-item");
+    if (!btn || !iconPickTargetId) return;
+    const icon = parseIconRef(btn.dataset.icon);
+    if (!icon) return;
+    applyNodeIcons([{ id: iconPickTargetId, icon }]);
+    closeIconPickDialog();
+    showAppToast("Icon gesetzt");
+  });
+
+  els.fileBtn?.addEventListener("click", () => {
+    els.fileInput?.click();
+  });
+
+  els.fileInput?.addEventListener("change", async () => {
+    const file = els.fileInput.files && els.fileInput.files[0];
+    const targetId = iconPickTargetId;
+    if (!file || !targetId) return;
+    els.fileBtn.disabled = true;
+    setIconPickStatus("Bild wird hochgeladen …");
+    try {
+      const dataUrl = await fileToPngDataUrl(file);
+      await uploadNodeIcon(targetId, dataUrl);
+      closeIconPickDialog();
+      showAppToast("Icon aus Datei gesetzt");
+    } catch (err) {
+      setIconPickStatus(err && err.message ? err.message : "Upload fehlgeschlagen", true);
+      els.fileBtn.disabled = false;
+    }
+  });
+
+  els.aiBtn?.addEventListener("click", async () => {
+    const targetId = iconPickTargetId;
+    if (!targetId) return;
+    els.aiBtn.disabled = true;
+    els.imageBtn.disabled = true;
+    setIconPickStatus("KI wählt ein Icon …");
+    try {
+      const result = await assignIconForNode(targetId);
+      if (!result.n) {
+        const warn = result.warnings && result.warnings[0];
+        throw new Error(warn || "Kein passendes Icon gefunden");
+      }
+      closeIconPickDialog();
+      const extra = result.warnings && result.warnings[0] ? ` (${result.warnings[0]})` : "";
+      showAppToast(`Icon gesetzt${extra}`);
+    } catch (err) {
+      setIconPickStatus(err && err.message ? err.message : "KI-Icon fehlgeschlagen", true);
+      els.aiBtn.disabled = false;
+      els.imageBtn.disabled = false;
+    }
+  });
+}
+
 const Mindmap = {
   getDocument: mindmapDocument,
   downloadImage,
   downloadPdf,
+  pushHistory,
+  withoutHistory,
+  undo,
+  redo,
   setDocument(doc) {
     assertMindmapDocument(doc);
+    clearHistory();
     state.nodes = JSON.parse(JSON.stringify(doc.nodes));
     state.style = withStyle({ style: doc.style || {} }).style;
-    // Auswahl zurücksetzen: die alte selectedId gehört meist zum vorherigen
-    // Dokument und existiert im neuen nicht (z. B. Galerie-Kopie).
+    // Auswahl und Bereich zurücksetzen: alte selectedId/scope gehören zur vorigen Karte.
     state.selectedId = "root";
+    state.scope = "node";
     if (doc.camera) {
       state.panX = Number.isFinite(doc.camera.panX) ? doc.camera.panX : state.panX;
       state.panY = Number.isFinite(doc.camera.panY) ? doc.camera.panY : state.panY;
@@ -2013,6 +2480,7 @@ const Mindmap = {
   },
   relayout(nodeId, options) {
     const id = nodeId || state.selectedId || "root";
+    pushHistory();
     if (!options || options.deep) relayoutCollided(state.nodes, state.style, id);
     else {
       relayoutOutgoing(state.nodes, id, state.style, textWidth);
@@ -2023,6 +2491,7 @@ const Mindmap = {
     return mindmapDocument();
   },
   setStyle(partial) {
+    pushHistory();
     const next = withStyle({ style: { ...state.style, ...partial } }).style;
     const layoutChanged = next.layout !== state.style.layout;
     state.style = next;
@@ -2059,6 +2528,7 @@ const Mindmap = {
 window.Mindmap = Mindmap;
 
 bindEnchantUi();
+bindIconPickUi();
 
 const iconsAiButton = document.getElementById("style-icons-ai");
 if (iconsAiButton) {

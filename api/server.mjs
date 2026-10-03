@@ -10,6 +10,7 @@
  *   GET  /api/icons              -> { icons: [{ id, kind, label, tags, url }] }
  *   GET  /api/icons/gen/<id>     -> PNG der generierten Icons
  *   POST /api/icons/assign       { targets:[{id,text}], allowGenerate? } -> { assignments, created, model }
+ *   POST /api/icons/upload       { image (data-URL), label? } -> { icon: "gen:<id>", entry }
  *
  * Verzaubern (grafische Mindmap-Illustration):
  *   POST /api/enchant  { image (data-URL), tree?, background?, title? } -> { image (data-URL), model }
@@ -48,12 +49,16 @@ const PUBLISH_MAX_PER_DAY = 3;
 const PUBLISH_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RATE_ICON_ANON_MAX = 6;
 const RATE_ICON_AUTH_MAX = 30;
+const RATE_ICON_UPLOAD_ANON_MAX = 12;
+const RATE_ICON_UPLOAD_AUTH_MAX = 40;
 const MAX_ASSIGN_TARGETS = 40;
 const MAX_GENERATE_PER_ASSIGN = 5;
 const ICON_REF_RE = /^(lucide|gen):[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const GEN_ID_RE = /^[a-z0-9]{8,24}$/;
 
 const MAX_BODY_BYTES = 256 * 1024;
+const MAX_ICON_UPLOAD_BODY_BYTES = 1.5 * 1024 * 1024;
+const MAX_ICON_UPLOAD_BYTES = 400 * 1024;
 const MAX_ENCHANT_BODY_BYTES = 3 * 1024 * 1024;
 const RATE_ENCHANT_ANON_MAX = 2;
 const RATE_ENCHANT_AUTH_MAX = 8;
@@ -424,6 +429,7 @@ Regeln für den Baum:
 - Keine Doppelungen: denselben Begriff nicht zweimal (auch nicht unter anderem Namen) auf derselben Ebene oder als parallele Äste.
 - Tiefe: die Wurzel zählt nicht. Etwa 5 bis 7 Äste. Nicht alle gleich tief. Mindestens ein Ast reicht bis zur dritten Ebene (Ast → Stichwort → darunter noch ein Stichwort). Mindestens zwei Äste hören bei den direkten Stichworten auf, ohne weitere Stufe. Eine vierte Ebene nur selten und nur an einer Stelle. Nie tiefer als vier. Lieber wenige tiefe Stellen als überall dieselbe Tiefe.
 - Stichworte, ein bis vier Wörter. Dieselbe Ebene gleichartig (lauter Nomen oder lauter Fragen, nicht gemischt). Keine Sätze, keine Nummerierung, kein Ast "Sonstiges". Äste decken das Thema ab und wiederholen sich nicht. Fachlich korrekt und gängig benannt.
+- Sprache der Knotentexte = Sprache des Nutzerauftrags. Deutscher Auftrag → alle Stichworte auf Deutsch (auch unter englischen Fachbegriffen wie „Cradle to Cradle“: Kinder und Geschwister deutsch, z. B. „Reduzieren“, „Wiederverwenden“, „biologische Kreisläufe“, nicht „Reduce“/„Biological Cycles“). Nur etablierte Eigennamen/Akronyme unverändert lassen.
 - Neue thematische Karte (Wurzel war "Neues Thema"/leer oder Auftrag „erstelle Mindmap zu …“): Hauptäste unter root mit unterschiedlichen colors (gold, green, cyan, blue, orange abwechselnd). Kinder erben die Farbe; color nur an Hauptästen setzen.
 - Wurzel ist das Thema in zwei, drei Wörtern. Heißt sie "Neues Thema" oder "Neu", umbenennen. Kinder, die nur "Neu" heißen, löschen oder umbenennen, nicht weitere "Neu" daneben stellen.
 - Echte vorhandene Inhalte ergänzen, nicht die ganze Karte leeren. „Tiefer“ oder „erweitere“ hängt nur an zwei oder drei bestehenden Ästen je eine weitere Ebene an, etwa 6 bis 12 neue Stichworte. Der Rest bleibt stehen. Bestehende flache Stichworte nicht durch parallele Überbegriffe verdoppeln — lieber darunter hängen oder umbenennen.
@@ -461,7 +467,7 @@ Antworte IMMER und NUR mit einem JSON-Objekt, ohne Markdown:
 {"reply":"<ein Satz Bewertung auf Deutsch>","needsCorrection":true|false,"reason":"<kurz, warum Korrektur sinnvoll wäre; leer wenn false>","ops":[ ... ]}
 
 Ops wie beim Bearbeiten: add, rename, delete, move. Kein style/relayout in der Kontrolle.
-- needsCorrection nur true bei echten Fehlern: falsche Fakten, Teil-von als Geschwister, doppelte/redundante Stichworte, fehlender Kernbegriff zum Auftrag, Wurzel noch "Neues Thema".
+- needsCorrection nur true bei echten Fehlern: falsche Fakten, Teil-von als Geschwister, doppelte/redundante Stichworte, fehlender Kernbegriff zum Auftrag, Wurzel noch "Neues Thema", falsche Sprache (deutscher Auftrag, aber englische Stichworte statt üblicher deutscher Begriffe — mit rename korrigieren; Eigennamen wie „Cradle to Cradle“ dürfen bleiben).
 - Bei true MUSS ops mindestens eine Korrektur enthalten. Nur beschreiben ohne Ops ist verboten. Nutze vorhandene ids aus der Karte (move/rename/delete bevorzugt, add nur wenn nötig). Höchstens 20 Ops. Keine komplette Neuerstellung.
 - Bei false: ops []. reason "".
 - Nicht überfein korrigieren. Geschmack oder „noch mehr Details“ allein reicht nicht.
@@ -1182,6 +1188,85 @@ async function handleGetGenIcon(res, id) {
   }
 }
 
+function parsePngDataUrl(value) {
+  if (typeof value !== "string") return null;
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/i.exec(value.trim());
+  if (!match) return null;
+  let bytes;
+  try {
+    bytes = Buffer.from(match[1], "base64");
+  } catch {
+    return null;
+  }
+  if (!bytes.length || bytes.length > MAX_ICON_UPLOAD_BYTES) return null;
+  // PNG-Signatur
+  if (
+    bytes.length < 8 ||
+    bytes[0] !== 0x89 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x4e ||
+    bytes[3] !== 0x47
+  ) {
+    return null;
+  }
+  return bytes;
+}
+
+async function storeUploadedIcon(label, bytes) {
+  const id = crypto.randomBytes(6).toString("hex");
+  await mkdir(ICONS_DIR, { recursive: true });
+  await writeFile(genIconPath(id), bytes);
+  const entry = {
+    id,
+    kind: "gen",
+    label: String(label || "Upload").slice(0, 80),
+    tags: ["upload"],
+    url: `/api/icons/gen/${id}`,
+    createdAt: new Date().toISOString(),
+  };
+  generatedIndex = [entry, ...generatedIndex.filter((item) => item.id !== id)].slice(0, 2000);
+  await saveGeneratedIndex();
+  return entry;
+}
+
+async function handleUploadIcon(req, res) {
+  const ip = clientIp(req);
+  const authed = verifyBasicAuth(req.headers.authorization);
+  const tier = authed ? "auth" : "anon";
+  if (!rateOk(`icon-upload:${tier}:${ip}`, authed ? RATE_ICON_UPLOAD_AUTH_MAX : RATE_ICON_UPLOAD_ANON_MAX, RATE_ANON_WINDOW_MS)) {
+    sendJson(res, 429, { error: "Too many requests", retryAfterSeconds: 300 });
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(await readBody(req, MAX_ICON_UPLOAD_BODY_BYTES));
+  } catch (err) {
+    sendJson(res, err && /too large/i.test(err.message) ? 413 : 400, {
+      error: err && /too large/i.test(err.message) ? "Bild zu groß" : "Ungültiger Request-Body (JSON erwartet)",
+    });
+    return;
+  }
+  const bytes = parsePngDataUrl(parsed && parsed.image);
+  if (!bytes) {
+    sendJson(res, 400, {
+      error: "image muss eine PNG-data-URL sein (max. 400 KB)",
+    });
+    return;
+  }
+  const label =
+    parsed && typeof parsed.label === "string" && parsed.label.trim()
+      ? parsed.label.trim().slice(0, 80)
+      : "Upload";
+  try {
+    const entry = await storeUploadedIcon(label, bytes);
+    log(ip, tier, "icons-upload", entry.id, `bytes=${bytes.length}`);
+    sendJson(res, 200, { icon: `gen:${entry.id}`, entry });
+  } catch (err) {
+    log("ERROR icons-upload", err.message);
+    sendJson(res, err.status || 500, { error: err.message || "Upload fehlgeschlagen" });
+  }
+}
+
 async function handleAssignIcons(req, res) {
   const ip = clientIp(req);
   const authed = verifyBasicAuth(req.headers.authorization);
@@ -1316,6 +1401,13 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === "POST" && url === "/api/icons/assign") {
     handleAssignIcons(req, res).catch((err) => {
+      log("FATAL", err);
+      if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
+    });
+    return;
+  }
+  if (req.method === "POST" && url === "/api/icons/upload") {
+    handleUploadIcon(req, res).catch((err) => {
       log("FATAL", err);
       if (!res.headersSent) sendJson(res, 500, { error: "Interner Fehler" });
     });

@@ -27,6 +27,7 @@ Dann `http://127.0.0.1:8777` öffnen.
 - **Weiter** lässt die Unterpunkte in der Richtung des Elternknotens weiterlaufen
 - Oben–Unten setzt die Striche an die Ober- und Unterkante, die Wörter stehen darüber oder darunter
 - Entf löscht den gewählten Knoten, nicht die Wurzel. Die Kinder bleiben und hängen danach an seinem Elternknoten
+- **Strg+Z** macht die letzte Kartenänderung rückgängig, **Strg+Y** (oder Strg+Umschalt+Z) stellt sie wieder her. Pan/Zoom und reine Auswahl zählen nicht.
 
 ## Für andere Agents
 
@@ -61,9 +62,10 @@ Im Layout-Panel steuert **Bereich**, wohin Style-Änderungen (Farbe, Linien, Str
 
 Knoten können ein optionales Feld `icon` tragen: `lucide:<name>` (Pack unter `icons/lucide/`, Lucide MIT) oder `gen:<id>` (generiert, API-Volume `/data/icons/`).
 
+- Am ausgewählten Knoten: Popup-Button **Icon** — ohne Icon öffnet die Wahl KI / Bild (Galerie oder Datei vom PC); mit Icon entfernt ein Klick das Icon.
 - Button **Icons (KI)** im Style-Panel weist Icons für den aktuellen Bereich zu (`POST /api/icons/assign`).
 - Chat-Op `{"op":"icon","id":"…","icon":"lucide:leaf"|"auto"|null}` — `auto` lässt den Server wählen/erzeugen.
-- `GET /api/icons` listet Katalog + generierten Pool; `GET /api/icons/gen/<id>` liefert PNG.
+- `GET /api/icons` listet Katalog + generierten Pool; `GET /api/icons/gen/<id>` liefert PNG; `POST /api/icons/upload` speichert eine PNG-data-URL als `gen:<id>`.
 
 ## Verzaubern
 

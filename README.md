@@ -51,12 +51,12 @@ Eine neue Karte aus einem Baum erzeugt `buildTreeNodes(tree)` und danach `relayo
 
 ## Chat-Assistent (OpenRouter)
 
-Über **Chat** in der Kopfleiste öffnet sich ein Panel. Der Assistent ändert die Karte auf Zuruf, z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.
+Unten rechts öffnet der funkelnde Assistenten-Knopf ein Panel. Der Assistent ändert die Karte auf Zuruf, z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.
 
 - `js/chat.js` schickt den kompakten Baum (`id`, `parentId`, `text`, `order`, `color`, `dir`) und den Auftrag an `POST /api/chat` — gleicher Ursprung, ohne Koordinaten.
 - `api/server.mjs` (Zero-Dependency-Node) hält den OpenRouter-Key **nur serverseitig** und ruft `https://openrouter.ai/api/v1/chat/completions` auf.
-- Das Modell antwortet mit `{ reply, ops }`; `ops` folgen `schema/mindmap.ops.json` und werden über die vorhandenen Funktionen (`addChild`, `deleteNode`, `Mindmap.setStyle`, `relayoutNodes`) angewandt. Ungültige Ops werden übersprungen, die Karte bleibt immer valide.
-- Ohne Zugang: kleines/günstiges Modell mit strengem Rate-Limit (Caddy + Proxy). Mit Zugang (**Schlüssel** im Panel, Basic Auth): bessere Modelle.
+- Das Modell antwortet mit `{ reply, ops }`; `ops` folgen `schema/mindmap.ops.json` und werden über die vorhandenen Funktionen (`addChild`, `deleteNode`, `Mindmap.setStyle`, `relayoutNodes`) angewandt. Ein `add` darf `ref` setzen; spätere Ops derselben Antwort nutzen diese `ref` als `parentId`, damit ein Baum in einem Zug entsteht. Ungültige Ops werden übersprungen, die Karte bleibt immer valide.
+- Ohne Zugang: günstiges Modell mit strengem Rate-Limit (Caddy + Proxy). Der frühere Slug `deepseek/deepseek-chat-v3.1:free` ist bei OpenRouter nicht mehr verfügbar. Mit Zugang (**Schlüssel** im Panel, Basic Auth): bessere Modelle.
 - `GET /api/health` zeigt Modellkonfiguration und ob der Key gesetzt ist.
 
 Serverseitige Umgebung (`mindmap/.env`, Vorlage `mindmap/.env.example`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL_PUBLIC`, `OPENROUTER_MODEL_AUTH`, `MINDMAP_CHAT_AUTH_USER`, `MINDMAP_CHAT_AUTH_HASH` (Format `scrypt$<saltHex>$<hashHex>`). Key: https://openrouter.ai/keys

@@ -63,53 +63,70 @@
 
   // ---------- Ops anwenden (nutzt app.js / layout.js) ----------
 
-  function relayoutFrom(nodeId) {
-    relayoutNodes(state.nodes, state.style, nodeId || "root", textWidth);
+  // ref aus dieser Antwort → echte Knoten-Id. Gilt nur für den laufenden Ops-Lauf.
+  function resolveRef(id, refs) {
+    return refs.has(id) ? refs.get(id) : id;
+  }
+
+  function nodeDepth(id) {
+    let depth = 0;
+    let current = state.nodes[id];
+    const seen = new Set();
+    while (current && current.parentId && !seen.has(current.id)) {
+      seen.add(current.id);
+      depth += 1;
+      current = state.nodes[current.parentId];
+    }
+    return depth;
   }
 
   function applyOps(ops) {
     const summary = { added: 0, renamed: 0, deleted: 0, moved: 0, styled: false, relaid: false };
     const skipped = [];
+    const refs = new Map();
+    let structural = false;
 
     for (const op of ops.slice(0, MAX_SUMMARY_OPS)) {
       try {
         if (op.op === "add") {
-          if (!state.nodes[op.parentId]) throw new Error(`Eltern fehlt: ${op.parentId}`);
-          addChild(op.parentId);
-          const id = state.selectedId;
-          const node = state.nodes[id];
+          const parentId = resolveRef(op.parentId, refs);
+          if (!state.nodes[parentId]) throw new Error(`Eltern fehlt: ${op.parentId}`);
+          if (nodeDepth(parentId) >= 4) throw new Error(`Zu tief unter ${op.parentId}`);
+          const id = addChild(parentId, { text: String(op.text), silent: true });
+          const node = id && state.nodes[id];
           if (!node) throw new Error("Knoten wurde nicht angelegt");
-          node.text = String(op.text).slice(0, 200);
-          node.w = textWidth(node.text, false);
           if (op.color && CHAT_COLORS.has(op.color)) node.color = op.color;
-          relayoutFrom(op.parentId);
+          if (op.ref) refs.set(op.ref, id);
+          structural = true;
           summary.added += 1;
         } else if (op.op === "rename") {
-          const node = state.nodes[op.id];
+          const node = state.nodes[resolveRef(op.id, refs)];
           if (!node) throw new Error(`Knoten fehlt: ${op.id}`);
           node.text = String(op.text).slice(0, 200);
-          node.w = textWidth(node.text, node.parentId ? false : true);
-          relayoutFrom(node.parentId || "root");
+          node.w = textWidth(node.text, !!node.parentId);
+          structural = true;
           summary.renamed += 1;
         } else if (op.op === "delete") {
-          if (!state.nodes[op.id] || op.id === "root") throw new Error(`Knoten fehlt: ${op.id}`);
-          deleteNode(op.id);
+          const id = resolveRef(op.id, refs);
+          if (!state.nodes[id] || id === "root") throw new Error(`Knoten fehlt: ${op.id}`);
+          deleteNode(id);
+          structural = true;
           summary.deleted += 1;
         } else if (op.op === "move") {
-          const node = state.nodes[op.id];
-          if (!node || op.id === "root") throw new Error(`Knoten fehlt: ${op.id}`);
-          if (!state.nodes[op.newParentId]) throw new Error(`Eltern fehlt: ${op.newParentId}`);
-          node.parentId = op.newParentId;
-          node.order = childrenOf(op.newParentId).length - 1;
-          relayoutFrom(op.newParentId);
+          const node = state.nodes[resolveRef(op.id, refs)];
+          const newParentId = resolveRef(op.newParentId, refs);
+          if (!node || node.id === "root") throw new Error(`Knoten fehlt: ${op.id}`);
+          if (!state.nodes[newParentId]) throw new Error(`Eltern fehlt: ${op.newParentId}`);
+          if (nodeDepth(newParentId) >= 4) throw new Error(`Zu tief unter ${op.newParentId}`);
+          node.parentId = newParentId;
+          node.order = childrenOf(newParentId).length - 1;
+          structural = true;
           summary.moved += 1;
         } else if (op.op === "style") {
           Mindmap.setStyle(op.style || {});
           summary.styled = true;
         } else if (op.op === "relayout") {
-          relayoutFrom("root");
-          state.centered = false;
-          centerIfNeeded();
+          structural = true;
           summary.relaid = true;
         }
       } catch (err) {
@@ -117,6 +134,11 @@
       }
     }
 
+    if (structural) {
+      relayoutCollided(state.nodes, state.style, "root");
+      state.centered = false;
+      centerIfNeeded();
+    }
     saveState();
     render();
     return { summary, skipped };
@@ -204,15 +226,18 @@
 
   // ---------- Verdrahtung ----------
 
-  toggle.addEventListener("click", () => {
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) {
-      if (!messagesEl.childElementCount) {
-        addMessage("assistant", "Ich ändere die Karte auf Zuruf — z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.");
-      }
-      input.focus();
+  function setChatOpen(open) {
+    panel.hidden = !open;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.title = open ? "Assistenten schließen" : "Assistenten öffnen";
+    if (!open) return;
+    if (!messagesEl.childElementCount) {
+      addMessage("assistant", "Ich ändere die Karte auf Zuruf — z. B. „Füge unter der Wurzel einen Knoten Wetter an“ oder „Lösche alles zu Insekten“.");
     }
-  });
+    input.focus();
+  }
+
+  toggle.addEventListener("click", () => setChatOpen(panel.hidden));
 
   if (authButton) authButton.addEventListener("click", askAuth);
 

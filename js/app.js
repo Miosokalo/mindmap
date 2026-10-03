@@ -911,22 +911,25 @@ function selectNode(id) {
   render();
 }
 
-function addChild(parentId) {
+function addChild(parentId, options) {
   const parent = state.nodes[parentId];
-  if (!parent) return;
+  if (!parent) return null;
+  const opts = options && typeof options === "object" ? options : {};
+  const silent = opts.silent === true;
+  const label = typeof opts.text === "string" && opts.text.trim() ? opts.text.trim().slice(0, 200) : "Neu";
   const siblings = childrenOf(parentId);
   const id = uid();
   state.nodes[id] = {
     id,
     parentId,
-    text: "Neu",
+    text: label,
     x: parent.x,
     y: parent.y,
     order: siblings.length,
     dir: parent.dir || null,
     prefer: null,
     color: parent.color === "root" ? "gold" : parent.color,
-    w: textWidth("Neu", false),
+    w: textWidth(label, false),
     h: 18,
   };
   if (parent.colorMode) state.nodes[id].colorMode = parent.colorMode;
@@ -934,12 +937,14 @@ function addChild(parentId) {
   if (parent.look) state.nodes[id].look = parent.look;
   if (Number.isFinite(parent.reach)) state.nodes[id].reach = parent.reach;
   state.selectedId = id;
+  if (silent) return id;
   relayoutOutgoing(state.nodes, parentId, state.style, textWidth);
   if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
   saveState();
   render();
   const text = nodesEl.querySelector(`[data-id="${id}"] .node-text`);
   if (text) beginEdit(id, text);
+  return id;
 }
 
 function deleteNode(id) {

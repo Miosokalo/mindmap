@@ -22,7 +22,7 @@ import { join } from "node:path";
 
 const PORT = Number(process.env.PORT || 3000);
 const OPENROUTER_API_KEY = (process.env.OPENROUTER_API_KEY || "").trim();
-const MODEL_PUBLIC = (process.env.OPENROUTER_MODEL_PUBLIC || "deepseek/deepseek-chat-v3.1:free").trim();
+const MODEL_PUBLIC = (process.env.OPENROUTER_MODEL_PUBLIC || "deepseek/deepseek-chat-v3.1").trim();
 const MODEL_AUTH = (process.env.OPENROUTER_MODEL_AUTH || "anthropic/claude-sonnet-4.5").trim();
 const AUTH_USER = (process.env.MINDMAP_CHAT_AUTH_USER || "").trim();
 const AUTH_HASH = (process.env.MINDMAP_CHAT_AUTH_HASH || "").trim();
@@ -40,7 +40,7 @@ const MAX_TREE_NODES = 600;
 const MAX_INSTRUCTION_CHARS = 2000;
 const MAX_HISTORY_ITEMS = 6;
 const MAX_REPLY_CHARS = 600;
-const OPENROUTER_TIMEOUT_MS = 30 * 1000;
+const OPENROUTER_TIMEOUT_MS = 60 * 1000;
 const MAX_OUTPUT_TOKENS = 2048;
 const NODE_TEXT_MAX = 200;
 const MAX_TITLE_CHARS = 80;
@@ -352,26 +352,48 @@ async function seedIfEmpty() {
 
 // ---------- OpenRouter ----------
 
-const SYSTEM_PROMPT = `Du bist ein Assistent, der Mindmaps bearbeitet.
+const SYSTEM_PROMPT = `Du bist ein Assistent, der Mindmaps inhaltlich bearbeitet.
 Der Nutzer beschreibt Änderungen an seiner Mindmap. Du antwortest IMMER und NUR mit einem einzigen JSON-Objekt, ohne Markdown, ohne Code-Fences, ohne Text außen herum:
 
 {"reply":"<kurze Antwort auf Deutsch, höchstens 2 Sätze>","ops":[ ... ]}
 
 Mögliche Ops (werden in der Reihenfolge ausgeführt):
-- {"op":"add","parentId":"<id eines vorhandenen Knotens>","text":"<kurzer Knotentext>","color":"gold|green|cyan|blue|orange"}
+- {"op":"add","parentId":"<id oder ref>","text":"<Stichwort>","ref":"<kurz, optional>"}
 - {"op":"rename","id":"<vorhandene id>","text":"<neuer Text>"}
 - {"op":"delete","id":"<vorhandene id, nie root>"}   (löscht nur diesen Knoten; direkte Kinder hängen danach an seinem Elternknoten)
-- {"op":"move","id":"<vorhandene id>","newParentId":"<vorhandene id>"}
-- {"op":"style","style":{"color":"color|mono","line":"curve|straight|elbow","nodes":"mixed|filled|outline|text","layout":"horizontal|vertical|around|radial|mixed"}}
-- {"op":"relayout"}   (ordnet die Karte neu an)
+- {"op":"move","id":"<vorhandene id>","newParentId":"<id oder ref>"}
+- {"op":"style",...} und {"op":"relayout"} nur, wenn der Nutzer ausdrücklich Farbe, Linien oder Anordnung verlangt.
 
-Regeln:
-- Benutze NUR ids, die in der angegebenen Karte existieren. Erfinde nie eigene ids für neue Knoten — gib nur die parentId des Zielknotens an.
-- "root" ist die Wurzel der Karte. delete nie auf "root".
-- Knotentexte kurz halten (Stichworte, wie eine echte Mindmap).
-- Wenn der Auftrag unklar ist: keine Ops, stattdessen eine kurze Rückfrage im reply.
-- Wenn nichts zu ändern ist: leeres ops-Array und kurze Bestätigung im reply.
-- Im reply knapp sagen, was du geändert hast.`;
+Regeln für den Baum:
+- Neue Knoten bekommen keine echte id. Soll ein neuer Knoten später Eltern sein, setze "ref" (z. B. "a1", "a1s"). Kinder nutzen diese ref als parentId. Eltern-Op steht vor den Kindern. ref gilt nur in dieser Antwort.
+- Benutze sonst nur ids aus der Karte. "root" ist die Wurzel. delete nie auf "root". Höchstens 50 Ops.
+- Tiefe: die Wurzel zählt nicht. Etwa 5 bis 7 Äste. Nicht alle gleich tief. Mindestens ein Ast reicht bis zur dritten Ebene (Ast → Stichwort → darunter noch ein Stichwort). Mindestens zwei Äste hören bei den direkten Stichworten auf, ohne weitere Stufe. Eine vierte Ebene nur selten und nur an einer Stelle. Nie tiefer als vier. Lieber wenige tiefe Stellen als überall dieselbe Tiefe.
+- Stichworte, ein bis vier Wörter. Dieselbe Ebene gleichartig (lauter Nomen oder lauter Fragen, nicht gemischt). Keine Sätze, keine Nummerierung, kein Ast "Sonstiges". Äste decken das Thema ab und wiederholen sich nicht.
+- Wurzel ist das Thema in zwei, drei Wörtern. Heißt sie "Neues Thema" oder "Neu", umbenennen. Kinder, die nur "Neu" heißen, löschen oder umbenennen, nicht weitere "Neu" daneben stellen.
+- Echte vorhandene Inhalte ergänzen, nicht die ganze Karte leeren. „Tiefer“ oder „erweitere“ hängt nur an zwei oder drei bestehenden Ästen je eine weitere Ebene an, etwa 6 bis 12 neue Stichworte. Der Rest bleibt stehen.
+- Unklares Thema: keine Ops, eine kurze Rückfrage im reply.
+- style und relayout weglassen, außer der Nutzer verlangt ausdrücklich Layout oder Farbe.
+- Im reply knapp sagen, was du geändert hast.
+
+Beispiel. Karte: [{"id":"root","parentId":null,"text":"Neues Thema"}]. Auftrag: Mindmap zu Klimaschutz.
+{"reply":"Klimaschutz steht jetzt im Zentrum, mit fünf Ästen. Energie geht eine Stufe tiefer.","ops":[
+  {"op":"rename","id":"root","text":"Klimaschutz"},
+  {"op":"add","parentId":"root","text":"Energie","ref":"a1"},
+  {"op":"add","parentId":"a1","text":"Strom","ref":"a1s"},
+  {"op":"add","parentId":"a1s","text":"Solar"},
+  {"op":"add","parentId":"a1s","text":"Wind"},
+  {"op":"add","parentId":"a1","text":"Wärme"},
+  {"op":"add","parentId":"root","text":"Verkehr","ref":"a2"},
+  {"op":"add","parentId":"a2","text":"Bahn"},
+  {"op":"add","parentId":"a2","text":"Fahrrad"},
+  {"op":"add","parentId":"root","text":"Gebäude","ref":"a3"},
+  {"op":"add","parentId":"a3","text":"Dämmung"},
+  {"op":"add","parentId":"root","text":"Konsum","ref":"a4"},
+  {"op":"add","parentId":"a4","text":"Ernährung"},
+  {"op":"add","parentId":"root","text":"Politik","ref":"a5"},
+  {"op":"add","parentId":"a5","text":"CO2-Preis"}
+]}
+Verkehr, Gebäude, Konsum und Politik bleiben flach. Nur Energie geht über Strom zu Solar und Wind.`;
 
 function buildMessages(tree, instruction, history) {
   const messages = [{ role: "system", content: SYSTEM_PROMPT }];
@@ -395,7 +417,14 @@ async function callOpenRouter(model, messages) {
         "HTTP-Referer": "https://mindmap.orga-hero.com",
         "X-Title": "Mindmap",
       },
-      body: JSON.stringify({ model, messages, max_tokens: MAX_OUTPUT_TOKENS, temperature: 0.2 }),
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        reasoning: { enabled: false },
+      }),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -406,9 +435,16 @@ async function callOpenRouter(model, messages) {
       throw err;
     }
     const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content;
-    if (typeof content !== "string") throw new Error("openrouter: leere Antwort");
-    return { content, model: data.model || model };
+    const message = data?.choices?.[0]?.message || {};
+    const content = messageText(message.content);
+    const reasoning = messageText(message.reasoning);
+    if (!content && !reasoning) throw new Error("openrouter: leere Antwort");
+    return {
+      content,
+      reasoning,
+      finish: data?.choices?.[0]?.finish_reason || "",
+      model: data.model || model,
+    };
   } finally {
     clearTimeout(timer);
   }
@@ -416,10 +452,54 @@ async function callOpenRouter(model, messages) {
 
 // ---------- Antwort parsen/säubern ----------
 
+function messageText(value) {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .map((part) => (typeof part === "string" ? part : part && typeof part.text === "string" ? part.text : ""))
+      .join("")
+      .trim();
+  }
+  return "";
+}
+
+function parseJsonObject(text) {
+  const start = text.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = start; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") depth += 1;
+    else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(start, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function extractJson(content) {
-  let text = content.trim();
-  const fence = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(text);
+  if (typeof content !== "string" || !content.trim()) return null;
+  let text = content.trim().replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
   if (fence) text = fence[1].trim();
+  const parsed = parseJsonObject(text);
+  if (parsed && typeof parsed === "object") return parsed;
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start < 0 || end <= start) return null;
@@ -428,6 +508,14 @@ function extractJson(content) {
   } catch {
     return null;
   }
+}
+
+function extractReply(content, reasoning) {
+  const fromContent = extractJson(content);
+  if (fromContent && (Array.isArray(fromContent.ops) || typeof fromContent.reply === "string")) return fromContent;
+  const fromReasoning = extractJson(reasoning);
+  if (fromReasoning && (Array.isArray(fromReasoning.ops) || typeof fromReasoning.reply === "string")) return fromReasoning;
+  return fromContent || fromReasoning;
 }
 
 function sanitizeOps(rawOps) {
@@ -442,6 +530,11 @@ function sanitizeOps(rawOps) {
       const text = str(raw.text, NODE_TEXT_MAX);
       if (!parentId || !text) continue;
       const out = { op: "add", parentId, text };
+      const ref = str(raw.ref, 16);
+      if (ref && /^[A-Za-z][A-Za-z0-9]{0,15}$/.test(ref) && !seenIds.has(`ref:${ref}`)) {
+        seenIds.add(`ref:${ref}`);
+        out.ref = ref;
+      }
       if (typeof raw.color === "string" && NODE_COLORS.has(raw.color) && raw.color !== "root") out.color = raw.color;
       ops.push(out);
     } else if (op === "rename") {
@@ -513,14 +606,24 @@ async function handleChat(req, res) {
   }
 
   try {
-    const { content, model: usedModel } = await callOpenRouter(model, buildMessages(tree, instruction, history));
-    const json = extractJson(content);
-    const reply = sanitizeReply(json?.reply);
+    const { content, reasoning, finish, model: usedModel } = await callOpenRouter(
+      model,
+      buildMessages(tree, instruction, history),
+    );
+    const json = extractReply(content, reasoning);
     const ops = sanitizeOps(json?.ops);
-    log(ip, tier, usedModel, `ops=${ops.length}`);
+    let reply = str(json?.reply, MAX_REPLY_CHARS);
+    if (!reply && ops.length) reply = "Die Karte ist angepasst.";
+    if (!reply) {
+      const snippet = (content || reasoning || "").replace(/\s+/g, " ").slice(0, 160);
+      log("UNPARSED", finish || "?", `content=${content.length}`, `reasoning=${reasoning.length}`, snippet);
+      reply = "Antwort vom Modell konnte nicht gelesen werden.";
+    }
+    log(ip, tier, usedModel, `ops=${ops.length}`, finish || "");
     sendJson(res, 200, { reply, ops, model: usedModel, authed });
   } catch (err) {
     if (err.name === "AbortError") {
+      log("TIMEOUT", model);
       sendJson(res, 504, { error: "Das Modell hat zu lange gebraucht. Bitte nochmal versuchen." });
     } else {
       log("ERROR", err.message);

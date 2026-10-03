@@ -388,15 +388,71 @@ button:hover {
 
 /* ---------- Chat-Panel ---------- */
 
+button.ai-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #f6f3ee;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.38);
+}
+
+button.ai-fab:hover {
+  color: #fff;
+  border-color: transparent;
+  filter: brightness(1.08);
+}
+
+.ai-spark {
+  width: 26px;
+  height: 26px;
+  transform-origin: 50% 50%;
+  animation: ai-twinkle 2.6s ease-in-out infinite;
+}
+
+button.ai-fab[aria-expanded="true"] .ai-spark {
+  animation: none;
+}
+
+@keyframes ai-twinkle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(0.84) rotate(-10deg);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.06) rotate(6deg);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-spark {
+    animation: none;
+  }
+}
+
 #chat {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
+  right: 22px;
+  bottom: 90px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   width: min(360px, calc(100vw - 36px));
-  height: min(460px, calc(100vh - 120px));
+  height: min(460px, calc(100vh - 180px));
   border: 1px solid rgba(28, 25, 23, 0.14);
   border-radius: 12px;
   background: var(--panel);
@@ -517,7 +573,7 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: calc(100vw - 32px);
+  max-width: calc(100vw - 160px);
   padding: 10px 16px;
   border: 1px solid rgba(28, 25, 23, 0.14);
   border-radius: 12px;

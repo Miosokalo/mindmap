@@ -23,6 +23,7 @@
               "op": { "const": "add" },
               "parentId": { "$ref": "#/$defs/nodeId" },
               "text": { "type": "string", "maxLength": 200 },
+              "ref": { "$ref": "#/$defs/ref" },
               "color": { "enum": ["gold", "green", "cyan", "blue", "orange"] }
             }
           },
@@ -88,7 +89,13 @@
     "nodeId": {
       "type": "string",
       "maxLength": 24,
-      "description": "Id eines vorhandenen Knotens der Karte. Neue Knoten bekommen ihre Id im Browser; das Modell vergibt nie eigene ids."
+      "description": "Id eines vorhandenen Knotens oder ein ref aus derselben Antwort. Neue Knoten bekommen ihre echte Id im Browser."
+    },
+    "ref": {
+      "type": "string",
+      "maxLength": 16,
+      "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$",
+      "description": "Kurzname nur für diese Antwort, damit spätere Ops den neuen Knoten als Eltern nutzen können."
     }
   }
 }

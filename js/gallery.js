@@ -32,6 +32,7 @@
   const publishSubmit = document.getElementById("publish-submit");
   const toastEl = document.getElementById("toast");
   const chatPanel = document.getElementById("chat");
+  const chatToggle = document.getElementById("chat-toggle");
 
   // Titel der Galerie-Karte, als deren lokale Kopie gerade editiert wird
   // (null = eigene/neue Karte). Die veröffentlichte Karte selbst bleibt immer
@@ -68,6 +69,11 @@
     viewport.hidden = true;
     viewBanner.hidden = true;
     if (chatPanel) chatPanel.hidden = true;
+    if (chatToggle) {
+      chatToggle.hidden = true;
+      chatToggle.setAttribute("aria-expanded", "false");
+      chatToggle.title = "Assistenten öffnen";
+    }
     refreshContinue();
     loadGallery();
   }
@@ -79,6 +85,7 @@
     viewport.hidden = false;
     viewport.style.display = "";
     viewBanner.hidden = !copyOfTitle;
+    if (chatToggle) chatToggle.hidden = false;
     if (state && state.zoom <= 0.051) state.centered = false;
     whenViewportReady(() => {
       centerIfNeeded();

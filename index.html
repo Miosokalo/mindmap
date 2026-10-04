@@ -4,18 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mindmap</title>
-    <link rel="stylesheet" href="css/app.css?v=43" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/app.css?v=45" />
   </head>
   <body>
     <div id="start" hidden>
       <div class="start-inner">
         <h1 class="start-brand">Mindmap</h1>
         <p class="start-sub">Denken, sammeln, ordnen — deine Karte bleibt lokal in deinem Browser.</p>
-        <button type="button" id="start-new" class="start-new">
+        <button type="button" id="start-new" class="btn btn-primary start-new">
           <span class="start-plus" aria-hidden="true">+</span>
           <span>Neue Mindmap erstellen</span>
         </button>
-        <button type="button" id="start-continue" class="start-continue" hidden>
+        <button type="button" id="start-continue" class="btn start-continue" hidden>
           „<span id="start-continue-title"></span>“ fortsetzen
         </button>
         <section class="gallery">
@@ -27,187 +30,234 @@
         </section>
       </div>
     </div>
-    <header class="bar" id="topbar">
-      <div class="bar-start">
+
+    <header class="topbar" id="topbar">
+      <div class="topbar-start">
         <div class="brand">Mindmap</div>
-        <div class="actions">
-          <button type="button" id="add-child">+ Kind</button>
-          <button type="button" id="delete-node">Löschen</button>
-        </div>
+        <span id="selected-name" class="selected-chip" title="Ausgewählter Knoten"></span>
       </div>
-      <div class="current-node">
-        <span class="current-node-label">Aktuell ausgewählt:</span>
-        <span id="selected-name" class="selected-frame"></span>
-      </div>
-      <div class="bar-end">
-        <button type="button" id="back-start" title="Zur Übersicht und Galerie">Galerie</button>
+      <div class="topbar-end">
+        <button type="button" id="style-toggle" class="btn btn-ghost" title="Stil und Layout" aria-expanded="false" aria-controls="style-panel">
+          Stil
+        </button>
+        <button type="button" id="back-start" class="btn btn-ghost" title="Zur Übersicht und Galerie">Galerie</button>
         <div class="download-wrap">
-          <button type="button" id="download-toggle" title="Karte herunterladen" aria-expanded="false" aria-haspopup="menu" aria-controls="download-menu">Download</button>
+          <button type="button" id="download-toggle" class="btn btn-ghost" title="Karte herunterladen" aria-expanded="false" aria-haspopup="menu" aria-controls="download-menu">
+            Download
+          </button>
           <div id="download-menu" class="download-menu" hidden role="menu">
-            <button type="button" id="download-image" role="menuitem">als Bild</button>
-            <button type="button" id="download-pdf" role="menuitem">als PDF</button>
+            <button type="button" id="download-image" class="btn" role="menuitem">als Bild</button>
+            <button type="button" id="download-pdf" class="btn" role="menuitem">als PDF</button>
           </div>
         </div>
-        <button type="button" id="enchant-open" title="Mindmap als grafisch ausgefeiltes Bild erzeugen">Verzaubern</button>
-        <button type="button" id="publish" title="Karte in die öffentliche Galerie stellen">Veröffentlichen …</button>
+        <button type="button" id="enchant-open" class="btn btn-primary" title="Mindmap als grafisch ausgefeiltes Bild erzeugen">Verzaubern</button>
+        <button type="button" id="publish" class="btn" title="Karte in die öffentliche Galerie stellen">Veröffentlichen</button>
       </div>
     </header>
-    <div class="bar layout-bar" id="layoutbar">
-      <div class="bar-title">Layout</div>
-      <div class="styles">
-        <label id="scope-field" title="Nur Auswahl: markierter Knoten. Auswahl + nächste Ebene: Knoten und direkte Kinder. Gesamter Unterbaum: alle Nachfahren.">
-          Bereich
-          <select id="style-scope">
-            <option value="node">Nur Auswahl</option>
-            <option value="children">Auswahl + nächste Ebene</option>
-            <option value="subtree">Gesamter Unterbaum</option>
-          </select>
-        </label>
-        <label>
-          Farbe
-          <select id="style-color">
-            <option value="color">Bunt</option>
-            <option value="mono">Schwarz-Weiß</option>
-          </select>
-        </label>
-        <label>
-          Linien
-          <select id="style-line">
-            <option value="curve">Geschwungen</option>
-            <option value="straight">Gerade</option>
-            <option value="elbow">Abgewinkelt</option>
-          </select>
-        </label>
-        <label title="Strichart der ausgehenden Linien. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
-          Strich
-          <select id="style-dash">
-            <option value="solid">Durchgezogen</option>
-            <option value="dashed">Gestrichelt</option>
-            <option value="dotted">Gepunktet</option>
-            <option value="dashdot">Strichpunkt</option>
-          </select>
-        </label>
-        <label id="anchor-field" title="Zeigt die Ankerpunkte am gewählten Knoten. Ein Klick auf eine Linie zeigt ihren Punkt auch bei ausgeschalteter Box. Bei nahem Zoom erscheint er außerdem unter dem Zeiger.">
-          <input id="show-anchors" type="checkbox" checked />
-          Anker
-        </label>
-        <label id="reach-field" title="Abstand der ausgehenden Linien. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
-          Strichlänge
-          <input id="style-reach" type="range" min="0" max="160" step="2" value="14" />
-        </label>
-        <label id="layout-field" title="Anordnung der ausgehenden Linien. Der Bereich bestimmt, ob Nachfahren dieselbe Anordnung erhalten.">
-          Anordnung
-          <select id="style-layout">
-            <option value="continue">Weiter</option>
-            <option value="around">Rundherum</option>
-            <option value="horizontal">Links–Rechts</option>
-            <option value="vertical">Oben–Unten</option>
-            <option value="radial">Gleichmäßig</option>
-          </select>
-        </label>
-        <label>
-          Knoten
-          <select id="style-nodes">
-            <option value="mixed">Gemischt</option>
-            <option value="filled">Fläche</option>
-            <option value="outline">Rahmen</option>
-            <option value="text">Nur Text</option>
-          </select>
-        </label>
-        <label title="Form des Knotenrahmens. Der Bereich bestimmt, ob nur dieser Knoten oder der ganze Unterbaum betroffen ist.">
-          Rahmen
-          <select id="style-shape">
-            <option value="round">Abgerundet</option>
-            <option value="rect">Rechteck</option>
-            <option value="pill">Kapsel</option>
-            <option value="ellipse">Ellipse</option>
-            <option value="diamond">Raute</option>
-          </select>
-        </label>
-        <button type="button" id="relayout" title="Legt nur die ausgehenden Linien des ausgewählten Knotens neu an. Der Knoten selbst bleibt, wo er steht.">Anordnen</button>
-        <button type="button" id="style-icons-ai" title="Passende Icons per KI für den gewählten Bereich setzen">Icons (KI)</button>
-      </div>
-      <p class="hint">Bereich gilt für Farbe, Linien, Strich, Rahmen, Strichlänge, Knoten, Anordnung und Icons. Anordnen gilt immer nur für den ausgewählten Knoten.</p>
-    </div>
-    <main id="viewport">
-      <div id="world">
-        <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
-        <div id="nodes"></div>
-        <div id="ports"></div>
-        <div id="node-actions" hidden>
-          <button type="button" id="node-add" title="Kind hinzufügen" aria-label="Kind hinzufügen">+</button>
-          <button type="button" id="node-icon" title="Icon hinzufügen" aria-label="Icon hinzufügen" aria-pressed="false">
-            <svg class="node-icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"
-              />
-              <circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none" />
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m7.5 16 3.2-3.4a1.2 1.2 0 0 1 1.7 0L16 16l1.2-1.2a1.2 1.2 0 0 1 1.6 0L20 16"
-              />
-            </svg>
-          </button>
-          <button type="button" id="node-delete" title="Löschen" aria-label="Löschen">
-            <svg class="node-delete-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"
-              />
-            </svg>
-            <span class="node-delete-label" hidden>Löschen?</span>
-          </button>
+
+    <div id="editor-shell" class="editor-shell">
+      <aside id="style-panel" class="style-panel" data-dock="top" hidden>
+        <div class="style-panel-head">
+          <h2 class="style-panel-title">Stil</h2>
+          <div class="style-panel-tools">
+            <button
+              type="button"
+              id="style-dock-toggle"
+              class="btn btn-ghost style-dock-toggle"
+              title="Als linke Seitenleiste anzeigen"
+              aria-label="Stil-Leiste nach links kippen"
+            >
+              <svg class="dock-icon dock-icon-side" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M9 4v16" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M3 4h6v16H3z" fill="currentColor" opacity="0.22" />
+              </svg>
+              <svg class="dock-icon dock-icon-top" viewBox="0 0 24 24" aria-hidden="true" hidden>
+                <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M3 10h18" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <path d="M3 4h18v6H3z" fill="currentColor" opacity="0.22" />
+              </svg>
+            </button>
+            <button type="button" id="style-panel-close" class="btn btn-ghost style-panel-close" aria-label="Stil schließen">Schließen</button>
+          </div>
         </div>
-      </div>
-    </main>
+        <div class="style-panel-body">
+          <section class="style-group">
+            <h3 class="style-group-title">Bereich</h3>
+            <div class="styles">
+              <label id="scope-field" title="Nur Auswahl: markierter Knoten. Auswahl + nächste Ebene: Knoten und direkte Kinder. Gesamter Unterbaum: alle Nachfahren.">
+                Gilt für
+                <select id="style-scope">
+                  <option value="node">Nur Auswahl</option>
+                  <option value="children">Auswahl + nächste Ebene</option>
+                  <option value="subtree">Gesamter Unterbaum</option>
+                </select>
+              </label>
+              <label>
+                Farbe
+                <select id="style-color">
+                  <option value="color">Bunt</option>
+                  <option value="mono">Schwarz-Weiß</option>
+                </select>
+              </label>
+            </div>
+          </section>
+          <section class="style-group">
+            <h3 class="style-group-title">Linien</h3>
+            <div class="styles">
+              <label>
+                Form
+                <select id="style-line">
+                  <option value="curve">Geschwungen</option>
+                  <option value="straight">Gerade</option>
+                  <option value="elbow">Abgewinkelt</option>
+                </select>
+              </label>
+              <label title="Strichart der ausgehenden Linien.">
+                Strich
+                <select id="style-dash">
+                  <option value="solid">Durchgezogen</option>
+                  <option value="dashed">Gestrichelt</option>
+                  <option value="dotted">Gepunktet</option>
+                  <option value="dashdot">Strichpunkt</option>
+                </select>
+              </label>
+              <label id="layout-field" title="Anordnung der ausgehenden Linien.">
+                Anordnung
+                <select id="style-layout">
+                  <option value="continue">Weiter</option>
+                  <option value="around">Rundherum</option>
+                  <option value="horizontal">Links–Rechts</option>
+                  <option value="vertical">Oben–Unten</option>
+                  <option value="radial">Gleichmäßig</option>
+                </select>
+              </label>
+              <label id="reach-field" title="Abstand der ausgehenden Linien.">
+                Länge
+                <input id="style-reach" type="range" min="0" max="160" step="2" value="14" />
+              </label>
+              <label id="anchor-field" class="style-check" title="Ankerpunkte am gewählten Knoten anzeigen.">
+                <input id="show-anchors" type="checkbox" checked />
+                Anker zeigen
+              </label>
+            </div>
+          </section>
+          <section class="style-group">
+            <h3 class="style-group-title">Knoten</h3>
+            <div class="styles">
+              <label>
+                Darstellung
+                <select id="style-nodes">
+                  <option value="mixed">Gemischt</option>
+                  <option value="filled">Fläche</option>
+                  <option value="outline">Rahmen</option>
+                  <option value="text">Nur Text</option>
+                </select>
+              </label>
+              <label title="Form des Knotenrahmens.">
+                Rahmen
+                <select id="style-shape">
+                  <option value="round">Abgerundet</option>
+                  <option value="rect">Rechteck</option>
+                  <option value="pill">Kapsel</option>
+                  <option value="ellipse">Ellipse</option>
+                  <option value="diamond">Raute</option>
+                </select>
+              </label>
+            </div>
+          </section>
+          <div class="style-actions">
+            <button type="button" id="relayout" class="btn" title="Legt nur die ausgehenden Linien des ausgewählten Knotens neu an.">Anordnen</button>
+            <button type="button" id="style-icons-ai" class="btn btn-primary" title="Passende Icons per KI für den gewählten Bereich setzen">Icons (KI)</button>
+          </div>
+        </div>
+      </aside>
+
+      <main id="viewport">
+        <div id="world">
+          <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="nodes"></div>
+          <div id="ports"></div>
+          <div id="node-actions" hidden>
+            <button type="button" id="node-add" title="Kind hinzufügen" aria-label="Kind hinzufügen">+</button>
+            <button type="button" id="node-icon" title="Icon hinzufügen" aria-label="Icon hinzufügen" aria-pressed="false">
+              <svg class="node-icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"
+                />
+                <circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none" />
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m7.5 16 3.2-3.4a1.2 1.2 0 0 1 1.7 0L16 16l1.2-1.2a1.2 1.2 0 0 1 1.6 0L20 16"
+                />
+              </svg>
+            </button>
+            <button type="button" id="node-delete" title="Löschen" aria-label="Löschen">
+              <svg class="node-delete-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"
+                />
+              </svg>
+              <span class="node-delete-label" hidden>Löschen?</span>
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+
     <div id="view-banner" hidden>
       <span class="view-title-label">Lokale Kopie von:</span>
       <strong id="view-title"></strong>
       <span class="view-note">Bearbeite sie frei — die veröffentlichte Karte bleibt unverändert.</span>
-      <button type="button" id="view-back">Zurück zur Galerie</button>
+      <button type="button" id="view-back" class="btn btn-ghost">Zurück zur Galerie</button>
     </div>
+
     <button type="button" id="chat-toggle" class="ai-fab" title="Assistenten öffnen" aria-label="Assistent" aria-expanded="false" hidden>
       <svg class="ai-spark" viewBox="0 0 24 24" aria-hidden="true">
         <path fill="currentColor" d="M9.2 2.4 10.5 7.1 15.2 8.4 10.5 9.7 9.2 14.4 7.9 9.7 3.2 8.4 7.9 7.1Z" />
         <path fill="currentColor" d="M17.2 12.2 18.2 15.4 21.4 16.4 18.2 17.4 17.2 20.6 16.2 17.4 13 16.4 16.2 15.4Z" />
       </svg>
     </button>
+
     <aside id="chat" hidden>
       <div class="chat-head">
         <span class="chat-title">Assistent</span>
         <span id="chat-model" class="chat-model"></span>
-        <button type="button" id="chat-auth" title="Zugang für bessere Modelle">Schlüssel</button>
+        <button type="button" id="chat-auth" class="btn btn-ghost" title="Zugang für bessere Modelle">Schlüssel</button>
       </div>
       <div id="chat-messages"></div>
       <form id="chat-form">
         <textarea id="chat-input" rows="2" placeholder="z. B. Füge unter der Wurzel einen Knoten ‚Wetter‘ an"></textarea>
-        <button type="submit" id="chat-send">Senden</button>
+        <button type="submit" id="chat-send" class="btn btn-primary">Senden</button>
       </form>
     </aside>
+
     <div id="review-dialog" hidden>
       <div class="review-card" role="dialog" aria-modal="true" aria-labelledby="review-title">
         <h3 id="review-title">Korrektur vorschlagen?</h3>
         <p id="review-reason" class="review-reason"></p>
         <p class="review-hint">Die Karte ist schon sichtbar. Soll die vorgeschlagene Korrektur übernommen werden?</p>
         <div class="review-actions">
-          <button type="button" id="review-skip">Nein, so lassen</button>
-          <button type="button" id="review-apply" class="review-apply">Ja, korrigieren</button>
+          <button type="button" id="review-skip" class="btn btn-ghost">Nein, so lassen</button>
+          <button type="button" id="review-apply" class="btn btn-primary">Ja, korrigieren</button>
         </div>
       </div>
     </div>
+
     <div id="enchant-dialog" hidden>
       <div class="enchant-card" role="dialog" aria-modal="true" aria-labelledby="enchant-title">
         <h3 id="enchant-title">Mindmap verzaubern</h3>
@@ -231,37 +281,39 @@
           <img id="enchant-preview" alt="Verzauberte Mindmap" />
         </div>
         <div class="enchant-actions">
-          <button type="button" id="enchant-cancel">Schließen</button>
-          <button type="button" id="enchant-download" hidden>Bild speichern</button>
-          <button type="button" id="enchant-run" class="enchant-run">Verzaubern</button>
+          <button type="button" id="enchant-cancel" class="btn btn-ghost">Schließen</button>
+          <button type="button" id="enchant-download" class="btn" hidden>Bild speichern</button>
+          <button type="button" id="enchant-run" class="btn btn-primary">Verzaubern</button>
         </div>
       </div>
     </div>
+
     <div id="icon-pick-dialog" hidden>
       <div class="icon-pick-card" role="dialog" aria-modal="true" aria-labelledby="icon-pick-title">
         <h3 id="icon-pick-title">Icon für diesen Knoten</h3>
         <p class="icon-pick-lead">Wie soll das Icon gesetzt werden?</p>
         <div id="icon-pick-source" class="icon-pick-source">
-          <button type="button" id="icon-pick-ai" class="icon-pick-choice">Per KI vorschlagen</button>
-          <button type="button" id="icon-pick-image" class="icon-pick-choice">Bild auswählen …</button>
+          <button type="button" id="icon-pick-ai" class="btn icon-pick-choice">Per KI vorschlagen</button>
+          <button type="button" id="icon-pick-image" class="btn icon-pick-choice">Bild auswählen …</button>
         </div>
         <div id="icon-pick-image-source" class="icon-pick-source" hidden>
-          <button type="button" id="icon-pick-gallery" class="icon-pick-choice">Aus Galerie wählen</button>
-          <button type="button" id="icon-pick-file" class="icon-pick-choice">Datei vom Computer</button>
-          <button type="button" id="icon-pick-back" class="icon-pick-back">Zurück</button>
+          <button type="button" id="icon-pick-gallery" class="btn icon-pick-choice">Aus Galerie wählen</button>
+          <button type="button" id="icon-pick-file" class="btn icon-pick-choice">Datei vom Computer</button>
+          <button type="button" id="icon-pick-back" class="btn btn-ghost icon-pick-back">Zurück</button>
         </div>
         <div id="icon-pick-gallery-panel" class="icon-pick-gallery" hidden>
           <input id="icon-pick-search" type="search" placeholder="Icons durchsuchen …" autocomplete="off" />
           <div id="icon-pick-grid" class="icon-pick-grid" role="listbox" aria-label="Icon-Galerie"></div>
-          <button type="button" id="icon-pick-gallery-back" class="icon-pick-back">Zurück</button>
+          <button type="button" id="icon-pick-gallery-back" class="btn btn-ghost icon-pick-back">Zurück</button>
         </div>
         <p id="icon-pick-status" class="icon-pick-status" hidden></p>
         <div class="icon-pick-actions">
-          <button type="button" id="icon-pick-cancel">Abbrechen</button>
+          <button type="button" id="icon-pick-cancel" class="btn btn-ghost">Abbrechen</button>
         </div>
         <input id="icon-pick-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" hidden />
       </div>
     </div>
+
     <div id="publish-dialog" hidden>
       <div class="publish-card">
         <h3>Karte veröffentlichen</h3>
@@ -277,18 +329,19 @@
         <p class="publish-confirm-hint">Zur Bestätigung <strong>veröffentlichen</strong> eintippen:</p>
         <input id="publish-confirm" type="text" autocomplete="off" spellcheck="false" placeholder="veröffentlichen" />
         <div class="publish-actions">
-          <button type="button" id="publish-cancel">Abbrechen</button>
-          <button type="button" id="publish-submit" disabled>Veröffentlichen</button>
+          <button type="button" id="publish-cancel" class="btn btn-ghost">Abbrechen</button>
+          <button type="button" id="publish-submit" class="btn btn-primary" disabled>Veröffentlichen</button>
         </div>
       </div>
     </div>
+
     <div id="toast" hidden></div>
     <script src="js/pflanzenschutz.js?v=31"></script>
     <script src="js/layout.js?v=34"></script>
     <script src="js/collider.js?v=2"></script>
     <script src="js/shape.js?v=2"></script>
-    <script src="js/app.js?v=53"></script>
+    <script src="js/app.js?v=55"></script>
     <script src="js/chat.js?v=29"></script>
-    <script src="js/gallery.js?v=26"></script>
+    <script src="js/gallery.js?v=28"></script>
   </body>
 </html>

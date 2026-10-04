@@ -1619,19 +1619,98 @@ document.getElementById("relayout").addEventListener("click", () => {
   Mindmap.relayout(state.selectedId || "root", { deep: false });
 });
 
-document.getElementById("add-child").addEventListener("click", () => {
-  addChild(state.selectedId || "root");
-});
-
-document.getElementById("delete-node").addEventListener("click", () => {
-  deleteNode(state.selectedId);
-});
-
 function closeDownloadMenu() {
   const menu = document.getElementById("download-menu");
   const toggle = document.getElementById("download-toggle");
   if (menu) menu.hidden = true;
   if (toggle) toggle.setAttribute("aria-expanded", "false");
+}
+
+const STYLE_DOCK_KEY = "mindmap.styleDock";
+
+function styleDockMode() {
+  const panel = document.getElementById("style-panel");
+  const raw = panel && panel.dataset.dock === "side" ? "side" : "top";
+  return raw;
+}
+
+function applyStyleDock(mode) {
+  const panel = document.getElementById("style-panel");
+  const shell = document.getElementById("editor-shell");
+  const dockBtn = document.getElementById("style-dock-toggle");
+  const next = mode === "side" ? "side" : "top";
+  if (panel) panel.dataset.dock = next;
+  if (shell) shell.classList.toggle("style-dock-side", next === "side");
+  if (dockBtn) {
+    const toSide = next === "top";
+    dockBtn.title = toSide ? "Als linke Seitenleiste anzeigen" : "Als obere Leiste anzeigen";
+    dockBtn.setAttribute("aria-label", toSide ? "Stil-Leiste nach links kippen" : "Stil-Leiste nach oben kippen");
+    const sideIcon = dockBtn.querySelector(".dock-icon-side");
+    const topIcon = dockBtn.querySelector(".dock-icon-top");
+    if (sideIcon) sideIcon.hidden = !toSide;
+    if (topIcon) topIcon.hidden = toSide;
+  }
+  try {
+    localStorage.setItem(STYLE_DOCK_KEY, next);
+  } catch {
+    /* ignore */
+  }
+}
+
+function setStylePanelOpen(open) {
+  const panel = document.getElementById("style-panel");
+  const toggle = document.getElementById("style-toggle");
+  if (!panel) return;
+  panel.hidden = !open;
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  if (open) {
+    // Nach Layout-Wechsel Viewport neu zentrieren, falls nötig
+    requestAnimationFrame(() => {
+      if (typeof centerIfNeeded === "function") centerIfNeeded();
+      if (typeof placeNodeActions === "function") placeNodeActions();
+    });
+  }
+}
+
+function closeStylePanel() {
+  setStylePanelOpen(false);
+}
+
+function bindStylePanel() {
+  const panel = document.getElementById("style-panel");
+  const toggle = document.getElementById("style-toggle");
+  const closeBtn = document.getElementById("style-panel-close");
+  const dockBtn = document.getElementById("style-dock-toggle");
+  if (!panel || !toggle) return;
+
+  let saved = "top";
+  try {
+    saved = localStorage.getItem(STYLE_DOCK_KEY) === "side" ? "side" : "top";
+  } catch {
+    saved = "top";
+  }
+  applyStyleDock(saved);
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setStylePanelOpen(panel.hidden);
+  });
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => closeStylePanel());
+  }
+  if (dockBtn) {
+    dockBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      applyStyleDock(styleDockMode() === "side" ? "top" : "side");
+      if (panel.hidden) setStylePanelOpen(true);
+      requestAnimationFrame(() => {
+        if (typeof centerIfNeeded === "function") centerIfNeeded();
+        if (typeof placeNodeActions === "function") placeNodeActions();
+      });
+    });
+  }
 }
 
 const downloadToggle = document.getElementById("download-toggle");
@@ -1695,6 +1774,7 @@ window.addEventListener("keydown", (event) => {
     if (el) beginEdit(state.selectedId, el);
   } else if (event.key === "Escape") {
     closeDownloadMenu();
+    closeStylePanel();
     if (confirmDeleteId) {
       confirmDeleteId = null;
       placeNodeActions();
@@ -2529,6 +2609,7 @@ window.Mindmap = Mindmap;
 
 bindEnchantUi();
 bindIconPickUi();
+bindStylePanel();
 
 const iconsAiButton = document.getElementById("style-icons-ai");
 if (iconsAiButton) {

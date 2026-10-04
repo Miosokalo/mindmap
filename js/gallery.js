@@ -17,7 +17,9 @@
   const galleryEmpty = document.getElementById("gallery-empty");
   const galleryError = document.getElementById("gallery-error");
   const topbar = document.getElementById("topbar");
-  const layoutbar = document.getElementById("layoutbar");
+  const editorShell = document.getElementById("editor-shell");
+  const stylePanel = document.getElementById("style-panel");
+  const styleToggle = document.getElementById("style-toggle");
   const viewport = document.getElementById("viewport");
   const viewBanner = document.getElementById("view-banner");
   const viewTitle = document.getElementById("view-title");
@@ -65,7 +67,9 @@
   function showStart() {
     startEl.hidden = false;
     topbar.hidden = true;
-    if (layoutbar) layoutbar.hidden = true;
+    if (editorShell) editorShell.hidden = true;
+    if (stylePanel) stylePanel.hidden = true;
+    if (styleToggle) styleToggle.setAttribute("aria-expanded", "false");
     viewport.hidden = true;
     viewBanner.hidden = true;
     if (chatPanel) chatPanel.hidden = true;
@@ -81,7 +85,9 @@
   function showEditor(after) {
     startEl.hidden = true;
     topbar.hidden = false;
-    if (layoutbar) layoutbar.hidden = false;
+    if (editorShell) editorShell.hidden = false;
+    if (stylePanel) stylePanel.hidden = true;
+    if (styleToggle) styleToggle.setAttribute("aria-expanded", "false");
     viewport.hidden = false;
     viewport.style.display = "";
     viewBanner.hidden = !copyOfTitle;

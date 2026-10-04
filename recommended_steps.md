@@ -1,6 +1,19 @@
 ---
-zuleztAktualisiert: "2026-10-04T01:32:00+02:00"
+zuleztAktualisiert: "2026-10-04T02:05:00+02:00"
 ---
+
+## Stil-Leiste Dock Top/Side (2026-10-04)
+
+- **Erledigt:** Stil klappt unter der Topbar nach unten aus (keine Floating-Card). Switch-Button in der Leiste kippt zwischen oberer Leiste und linker Sidebar; Präferenz in `localStorage`. Escape/Schließen bleibt.
+- **Code:** `index.html`, `css/app.css`, `js/app.js`, `js/gallery.js`, `README.md`.
+- **Deploy:** Image `webstack-mindmap` neu gebaut.
+
+## UI Refresh (2026-10-04)
+
+- **Erledigt:** Frisches Cool-Hell-UI (DM Sans, Teal-Akzent). Slim-Topbar mit Selected-Chip; doppelte +Kind/Löschen entfernt. Layout-Leiste → einklappbares Stil-Panel (Gruppen Bereich/Linien/Knoten). Button-Hierarchie primary/ghost. Start, Galerie, Chat, Dialoge angeglichen.
+- **Code:** `index.html`, `css/app.css`, `js/app.js`, `js/gallery.js`, `README.md`.
+- **Deploy:** Image `webstack-mindmap` neu gebaut.
+- **Manuell:** Startseite, Editor-Topbar, Stil öffnen/Escape, Node-Popup, Verzaubern/Assistent.
 
 ## Undo/Redo Strg+Z/Y (2026-10-04)
 
@@ -57,15 +70,4 @@ zuleztAktualisiert: "2026-10-04T01:32:00+02:00"
 - **Erledigt:** „Failed to fetch“ — der Browser hat `/api/chat` nach zwei Sekunden verworfen, der Server hat die Antwort danach trotzdem gebaut (ops=4), die Karte blieb unverändert. Die Antwort-Header gehen jetzt sofort raus, bricht die Verbindung ab, wird der Modellanruf gestoppt, und der Client versucht den Aufruf einmal neu. Statt „Failed to fetch“ steht ein deutscher Hinweis. Der Prompt darf „wiederhergestellt“ nicht behaupten, wenn keine Ops da sind; „Entferne“ wird zu delete.
 - **Code:** `api/server.mjs`, `js/chat.js`, `index.html`.
 - **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut. Prüfung: „entferne die Handlungsstrang-Knoten“ → HTTP 200, Op `delete`. Noch nicht committed.
-
-## Umgestalten ohne erfundene Ids (2026-10-03)
-
-- **Erledigt:** „Eltern fehlt: vincent_handlung“ — das Modell hat am neuen Knoten eine eigene `id` gesetzt und die Kinder daran gehängt. Die echte Id vergibt weiter der Browser; so ein Name zählt jetzt als `ref`, auch mit Unterstrich und wenn die Kinder vor dem Eltern-Op stehen.
-- **Code:** `api/server.mjs`, `js/chat.js`, `schema/mindmap.ops.json`, `index.html`, `README.md`.
-- **Deploy:** Images neu gebaut. Noch nicht committed.
-
-## Tiefer-Auftrag ohne Abbruch (2026-10-03)
-
-- **Erledigt:** „Das Modell hat zu lange gebraucht“ kam, weil DeepSeek die Minute im Denkfeld verbracht hat und der Antworttext leer blieb. Der Aufruf schaltet das Denkfeld aus. Nachträge wie „tiefer“ ergänzen nur zwei, drei Äste, statt die Karte neu zu bauen.
-- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut (Assistenten-Knopf und Timeout-Fix).
 

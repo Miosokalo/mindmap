@@ -13,9 +13,10 @@ Dann `http://127.0.0.1:8777` öffnen.
 ## Bedienung
 
 - Knoten wählen, ziehen, per Doppelklick umbenennen
-- Über dem gewählten Knoten: **+** legt ein Kind an, der Mülleimer löscht erst beim zweiten Klick
-- **+ Kind** oder Tab legt einen Unterpunkt an
-- **Anordnen** liegt bei Layout und legt nur die ausgehenden Linien des ausgewählten Knotens neu. Der Knoten selbst bleibt, wo er steht. Der Bereich ändert daran nichts
+- Über dem gewählten Knoten: **+** legt ein Kind an, Icon setzt/entfernt ein Symbol, der Mülleimer löscht erst beim zweiten Klick
+- Tab legt ebenfalls einen Unterpunkt an; Entf löscht
+- **Stil** klappt die Stil-Leiste unter der Kopfzeile aus. Der kleine Switch oben rechts in der Leiste kippt sie zur linken Sidebar (Präferenz bleibt gespeichert)
+- **Anordnen** legt nur die ausgehenden Linien des ausgewählten Knotens neu. Der Knoten selbst bleibt, wo er steht
 - **Bereich** gilt für Farbe, Linienform, Strichlänge, Knotendarstellung und Anordnung
 - **Strichlänge** setzt den Abstand der ausgehenden Linien. Kurz zieht die Kinder heran, lang rückt sie weg
 - **Nur Auswahl** ändert den markierten Knoten und seine ausgehenden Linien. Die Anordnung rückt die direkten Kinder zurecht; deren Unterpunkte behalten die Lage zueinander

@@ -10,6 +10,41 @@
 (() => {
   const CHAT_COLORS = new Set(["gold", "green", "cyan", "blue", "orange"]);
   const MAX_SUMMARY_OPS = 50;
+  const WAITING_LINE_MS = 4000;
+  const THINKING_LINES = [
+    "Ich erschließe mir das Thema …",
+    "Ich erschließe die Zusammenhänge …",
+    "Ich konstruiere die gewünschte Tiefe …",
+    "Ich baue die Ebenen aus …",
+    "Ich recherchiere zum Thema …",
+    "Ich sammle die passenden Begriffe …",
+    "Ich zeichne die Linien …",
+    "Ich ziehe die Äste aus …",
+    "Ich lege die Knoten an …",
+    "Ich sortiere die Gedanken …",
+    "Ich ordne, was zusammengehört …",
+    "Ich spanne das Begriffsnetz …",
+    "Ich prüfe, was wohin gehört …",
+    "Ich schärfe die Stichworte …",
+    "Ich verdichte auf das Wesentliche …",
+    "Ich lasse die Karte wachsen …",
+    "Ich knüpfe die Verbindungen …",
+    "Ich folge dem roten Faden …",
+    "Ich verteile die Hauptäste …",
+    "Ich setze die Ankerpunkte …",
+    "Ich falte das Thema auseinander …",
+    "Ich räume doppelte Zweige beiseite …",
+    "Noch ein wenig Feinschliff an den Knoten …",
+    "Gleich ist die Karte soweit …",
+  ];
+  const REVIEW_LINES = [
+    "Ich prüfe das Ergebnis …",
+    "Ich lese die Karte noch einmal …",
+    "Ich gleiche Hierarchie und Fakten ab …",
+    "Ich suche schiefe Äste …",
+    "Ich achte auf Doppelungen …",
+    "Ich schaue, ob die Tiefe stimmt …",
+  ];
 
   const panel = document.getElementById("chat");
   const toggle = document.getElementById("chat-toggle");
@@ -42,6 +77,28 @@
     messagesEl.append(el);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return el;
+  }
+
+  function shuffledLines(lines) {
+    const copy = lines.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const swap = copy[i];
+      copy[i] = copy[j];
+      copy[j] = swap;
+    }
+    return copy;
+  }
+
+  function startWaitingLines(el, lines) {
+    const order = shuffledLines(lines);
+    let index = 0;
+    el.textContent = order[0];
+    const timer = setInterval(() => {
+      index = (index + 1) % order.length;
+      el.textContent = order[index];
+    }, WAITING_LINE_MS);
+    return () => clearInterval(timer);
   }
 
   function setModelLabel() {
@@ -327,7 +384,8 @@
 
   async function runReview(instruction, token) {
     if (!reviewDialog) return;
-    const status = addMessage("assistant pending review-pending", "prüft Ergebnis …");
+    const status = addMessage("assistant pending review-pending", "");
+    const stopWaiting = startWaitingLines(status, REVIEW_LINES);
     const controller = new AbortController();
     reviewAbort = controller;
     try {
@@ -360,6 +418,7 @@
       // Stille Kontrolle — Nutzer nicht mit Nebenfehlern belasten.
       console.warn("[chat-review]", err && err.message);
     } finally {
+      stopWaiting();
       if (reviewAbort === controller) reviewAbort = null;
     }
   }
@@ -378,7 +437,8 @@
     cancelReview();
     addMessage("user", instruction);
 
-    const thinking = addMessage("assistant pending", "denkt nach …");
+    const thinking = addMessage("assistant pending", "");
+    const stopWaiting = startWaitingLines(thinking, THINKING_LINES);
     try {
       const data = await postChat({
         document: { nodes: compactTree() },
@@ -435,6 +495,7 @@
       const lost = /Failed to fetch|NetworkError|Load failed/i.test(err && err.message);
       addMessage("error", lost ? "Die Verbindung ist abgebrochen. Bitte die Anfrage nochmal senden." : `${err.message}`);
     } finally {
+      stopWaiting();
       busy = false;
       sendButton.disabled = false;
       input.focus();

@@ -47,3 +47,17 @@
 - **Code:** `api/server.mjs`, `js/chat.js`, `schema/mindmap.ops.json`, `index.html`, `README.md`.
 - **Deploy:** Images neu gebaut. Noch nicht committed.
 
+
+
+## Chat-Verbindung (2026-10-03)
+
+- **Erledigt:** „Failed to fetch“ — der Browser hat `/api/chat` nach zwei Sekunden verworfen, der Server hat die Antwort danach trotzdem gebaut (ops=4), die Karte blieb unverändert. Die Antwort-Header gehen jetzt sofort raus, bricht die Verbindung ab, wird der Modellanruf gestoppt, und der Client versucht den Aufruf einmal neu. Statt „Failed to fetch“ steht ein deutscher Hinweis. Der Prompt darf „wiederhergestellt“ nicht behaupten, wenn keine Ops da sind; „Entferne“ wird zu delete.
+- **Code:** `api/server.mjs`, `js/chat.js`, `index.html`.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut. Prüfung: „entferne die Handlungsstrang-Knoten“ → HTTP 200, Op `delete`. Noch nicht committed.
+
+
+## Rahmen und Strich (2026-10-04)
+
+- **Erledigt:** Rahmen: Abgerundet, Rechteck, Kapsel, Ellipse, Raute. Strich der ausgehenden Linien: Durchgezogen, Gestrichelt, Gepunktet, Strichpunkt. Die Linie endet auf der jeweiligen Form. Bereich gilt wie bei den anderen Stilfeldern.
+- **Code:** `js/shape.js`, `js/app.js`, `js/layout.js`, `css/app.css`, `index.html`, `api/server.mjs`, `schema/mindmap.document.json`, `schema/mindmap.ops.json`, `README.md`.
+- **Deploy:** mit Qualitätskontrolle-Chat ausgeliefert (Images neu gebaut).

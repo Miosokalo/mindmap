@@ -1,6 +1,19 @@
 ---
-zuleztAktualisiert: "2026-10-04T02:05:00+02:00"
+zuletztAktualisiert: "2026-10-06T08:30:21+02:00"
 ---
+
+## Klick ins Leere hebt Auswahl auf (2026-10-06)
+
+- **Erledigt:** Klick auf die freie Fläche (ohne Ziehen) setzt `selectedId` auf null. Der Auswahl-Chip verschwindet, das Knoten-Menü auch. Ziehen zum Verschieben lässt die Auswahl stehen.
+- **Code:** `js/app.js`, `index.html` (`app.js?v=56`).
+- **Deploy:** Image `webstack-mindmap` neu gebaut und gestartet.
+
+## Chat-Zeitlimit und Wartezeilen (2026-10-06)
+
+- **Erledigt:** OpenRouter-Timeout von 60s auf 3 Minuten (`OPENROUTER_TIMEOUT_MS`). Chat-Wartezeit rotiert alle 4s durch gemischte Statuszeilen (Thema, Tiefe, Linien, Knoten); die Qualitätskontrolle hat eigene Zeilen.
+- **Code:** `api/server.mjs`, `js/chat.js`.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
+- **Offen:** —
 
 ## Stil-Leiste Dock Top/Side (2026-10-04)
 
@@ -58,16 +71,4 @@ zuleztAktualisiert: "2026-10-04T02:05:00+02:00"
 - **Code:** `api/server.mjs`, `js/chat.js`, `css/app.css`, `index.html`, `schema/mindmap.ops.json`, `README.md`.
 - **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
 - **Manuell:** Neue Mindmap → Assistent „Mindmap zu X“ → prüfen, ob Farben und Kontrolle erscheinen; bei Popup Ja/Nein; Stil „links-rechts + gestrichelt“.
-
-## Rahmen und Strich (2026-10-04)
-
-- **Erledigt:** Rahmen: Abgerundet, Rechteck, Kapsel, Ellipse, Raute. Strich der ausgehenden Linien: Durchgezogen, Gestrichelt, Gepunktet, Strichpunkt. Die Linie endet auf der jeweiligen Form. Bereich gilt wie bei den anderen Stilfeldern.
-- **Code:** `js/shape.js`, `js/app.js`, `js/layout.js`, `css/app.css`, `index.html`, `api/server.mjs`, `schema/mindmap.document.json`, `schema/mindmap.ops.json`, `README.md`.
-- **Deploy:** mit Qualitätskontrolle-Chat ausgeliefert (Images neu gebaut).
-
-## Chat-Verbindung (2026-10-03)
-
-- **Erledigt:** „Failed to fetch“ — der Browser hat `/api/chat` nach zwei Sekunden verworfen, der Server hat die Antwort danach trotzdem gebaut (ops=4), die Karte blieb unverändert. Die Antwort-Header gehen jetzt sofort raus, bricht die Verbindung ab, wird der Modellanruf gestoppt, und der Client versucht den Aufruf einmal neu. Statt „Failed to fetch“ steht ein deutscher Hinweis. Der Prompt darf „wiederhergestellt“ nicht behaupten, wenn keine Ops da sind; „Entferne“ wird zu delete.
-- **Code:** `api/server.mjs`, `js/chat.js`, `index.html`.
-- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut. Prüfung: „entferne die Handlungsstrang-Knoten“ → HTTP 200, Op `delete`. Noch nicht committed.
 

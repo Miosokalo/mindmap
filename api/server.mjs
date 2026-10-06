@@ -68,7 +68,8 @@ const MAX_TREE_NODES = 600;
 const MAX_INSTRUCTION_CHARS = 2000;
 const MAX_HISTORY_ITEMS = 6;
 const MAX_REPLY_CHARS = 600;
-const OPENROUTER_TIMEOUT_MS = 60 * 1000;
+// Komplexe Karten (tiefe Bäume, viele Ops) brauchen oft länger als eine Minute.
+const OPENROUTER_TIMEOUT_MS = 180 * 1000;
 const MAX_OUTPUT_TOKENS = 2048;
 const NODE_TEXT_MAX = 200;
 const MAX_TITLE_CHARS = 80;
@@ -776,7 +777,10 @@ async function handleChat(req, res) {
         return;
       }
       log("TIMEOUT", model);
-      sendJson(res, 504, { error: "Das Modell hat zu lange gebraucht. Bitte nochmal versuchen." });
+      const minutes = OPENROUTER_TIMEOUT_MS / 60000;
+      sendJson(res, 504, {
+        error: `Das Modell hat länger als ${minutes} Minuten gebraucht. Bitte nochmal versuchen.`,
+      });
     } else {
       log("ERROR", err.message);
       const status = err.status || 502;

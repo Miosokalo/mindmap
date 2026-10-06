@@ -199,7 +199,8 @@ function restoreHistorySnapshot(snap) {
   historyPaused = true;
   state.nodes = JSON.parse(JSON.stringify(snap.nodes));
   state.style = withStyle({ style: snap.style || {} }).style;
-  state.selectedId = snap.selectedId && state.nodes[snap.selectedId] ? snap.selectedId : "root";
+  const savedId = snap.selectedId;
+  state.selectedId = savedId && state.nodes[savedId] ? savedId : savedId ? "root" : null;
   state.scope = parseScope(snap.scope);
   state.showAnchors = snap.showAnchors !== false;
   confirmDeleteId = null;
@@ -1121,6 +1122,14 @@ function selectNode(id) {
   render();
 }
 
+function clearSelection() {
+  if (!state.selectedId) return;
+  confirmDeleteId = null;
+  state.selectedId = null;
+  saveState();
+  render();
+}
+
 function addChild(parentId, options) {
   const parent = state.nodes[parentId];
   if (!parent) return null;
@@ -1386,11 +1395,14 @@ window.addEventListener("pointerup", (event) => {
     if (handle) handle.classList.remove("dragging");
   }
   const movedNode = drag.kind === "node";
-  const shifted = movedNode && Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY) > 4;
+  const pointerTravel = Math.hypot(event.clientX - drag.originX, event.clientY - drag.originY);
+  const shifted = movedNode && pointerTravel > 4;
   const portChanged = drag.kind === "port" && drag.portChanged;
+  const backgroundClick = drag.kind === "pan" && pointerTravel <= 4;
   if ((shifted || portChanged) && drag.beforeSnap) pushHistorySnapshot(drag.beforeSnap);
   viewport.classList.remove("panning");
   drag = null;
+  if (backgroundClick) clearSelection();
   if (shifted) {
     syncNodeSizes();
     clearCrossings(state.nodes);
@@ -1443,7 +1455,12 @@ function syncArrangementControl() {
   if (select.value !== next) select.value = next;
   const frame = document.getElementById("selected-name");
   if (!frame) return;
-  const name = node && node.text ? node.text : "Keiner";
+  if (!node) {
+    frame.textContent = "";
+    frame.title = "";
+    return;
+  }
+  const name = node.text || "Keiner";
   frame.textContent = name;
   frame.title = name;
 }

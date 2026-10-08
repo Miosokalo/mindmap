@@ -60,8 +60,9 @@ const MAX_BODY_BYTES = 256 * 1024;
 const MAX_ICON_UPLOAD_BODY_BYTES = 1.5 * 1024 * 1024;
 const MAX_ICON_UPLOAD_BYTES = 400 * 1024;
 const MAX_ENCHANT_BODY_BYTES = 3 * 1024 * 1024;
-const RATE_ENCHANT_ANON_MAX = 2;
-const RATE_ENCHANT_AUTH_MAX = 8;
+const RATE_ENCHANT_ANON_MAX = 6;
+const RATE_ENCHANT_AUTH_MAX = 20;
+const RATE_ENCHANT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ENCHANT_IMAGE_CHARS = 2.5 * 1024 * 1024;
 const MAX_ENCHANT_TREE_NODES = 120;
 const MAX_TREE_NODES = 600;
@@ -171,12 +172,16 @@ const rateBuckets = new Map();
 function rateOk(key, max, windowMs) {
   const now = Date.now();
   const arr = (rateBuckets.get(key) || []).filter((t) => now - t < windowMs);
+  if (arr.length >= max) {
+    rateBuckets.set(key, arr);
+    return false;
+  }
   arr.push(now);
   rateBuckets.set(key, arr);
   if (rateBuckets.size > 5000) {
     for (const [k, v] of rateBuckets) if (v.every((t) => now - t >= windowMs)) rateBuckets.delete(k);
   }
-  return arr.length <= max;
+  return true;
 }
 
 setInterval(() => {
@@ -1042,8 +1047,10 @@ async function handleEnchant(req, res) {
   const ip = clientIp(req);
   const authed = verifyBasicAuth(req.headers.authorization);
   const tier = authed ? "auth" : "anon";
-  if (!rateOk(`enchant:${tier}:${ip}`, authed ? RATE_ENCHANT_AUTH_MAX : RATE_ENCHANT_ANON_MAX, RATE_ANON_WINDOW_MS)) {
-    sendJson(res, 429, { error: "Too many requests", retryAfterSeconds: 300 });
+  if (!rateOk(`enchant:${tier}:${ip}`, authed ? RATE_ENCHANT_AUTH_MAX : RATE_ENCHANT_ANON_MAX, RATE_ENCHANT_WINDOW_MS)) {
+    sendJson(res, 429, {
+      error: "Zu viele Illustrationen hintereinander. Bitte ein paar Minuten warten und dann erneut versuchen.",
+    });
     return;
   }
   if (!OPENROUTER_API_KEY) {

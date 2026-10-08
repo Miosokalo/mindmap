@@ -1,6 +1,13 @@
 ---
-zuletztAktualisiert: "2026-10-06T08:30:21+02:00"
+zuletztAktualisiert: "2026-10-08T14:33:24+02:00"
 ---
+
+## Illustration statt Dauer-Sperre (2026-10-08)
+
+- **Erledigt:** Abgewiesene Aufrufe verlängern das Limit nicht mehr. Illustration: 6 Versuche / 10 Minuten (ohne Zugang), deutsche Meldung. Dialog erklärt: Bild aus der aktuellen Karte, Editor bleibt unverändert, Vorschau und Speichern. Button heißt **Illustration**.
+- **Code:** `api/server.mjs`, `index.html`, `css/app.css`, `js/app.js`.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
+- **Offen:** —
 
 ## Klick ins Leere hebt Auswahl auf (2026-10-06)
 
@@ -64,11 +71,4 @@ zuletztAktualisiert: "2026-10-06T08:30:21+02:00"
 - **Code:** `js/app.js`, `js/chat.js`, `css/app.css`, `index.html`, `api/server.mjs`, `icons/*`, Schemas, Dockerfiles, `README.md`, `.env.example`.
 - **Deploy:** Images neu bauen/starten.
 - **Manuell:** Bereich „Auswahl + nächste Ebene“ → Farbe; **Icons (KI)**; Chat „setze Icons auf die Hauptäste“. Lucide-Assign live ok. Image-Gen braucht OpenRouter-Guthaben (aktuell 402 Insufficient credits) — danach wächst `/data/icons`.
-
-## Qualitätskontrolle Chat (2026-10-04)
-
-- **Erledigt:** Live-Tests (Photosynthese, Vertiefen, Stil): Inhalt oft brauchbar, aber Hierarchie-Fehler (Teil-von als Geschwister), Doppelungen, einfarbige Äste, Stil-Ops manchmal fehlend. Prompt geschärft (Hierarchie, Farben an Hauptästen, Layout-/Dash-Mapping). Feedback-Kontroll-Loop: nach strukturellen Ops läuft `mode: "review"` im Hintergrund, Ergebnis bleibt sichtbar; Korrektur nur nach Popup-Bestätigung.
-- **Code:** `api/server.mjs`, `js/chat.js`, `css/app.css`, `index.html`, `schema/mindmap.ops.json`, `README.md`.
-- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
-- **Manuell:** Neue Mindmap → Assistent „Mindmap zu X“ → prüfen, ob Farben und Kontrolle erscheinen; bei Popup Ja/Nein; Stil „links-rechts + gestrichelt“.
 

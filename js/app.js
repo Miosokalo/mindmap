@@ -2118,7 +2118,7 @@ function bindEnchantUi() {
     busy = next;
     runBtn.disabled = next;
     openBtn.disabled = next;
-    runBtn.textContent = next ? "Verzaubert …" : "Verzaubern";
+    runBtn.textContent = next ? "Wird erzeugt …" : "Bild erzeugen";
   }
 
   openBtn.addEventListener("click", () => setOpen(true));
@@ -2134,7 +2134,7 @@ function bindEnchantUi() {
 
   downloadBtn.addEventListener("click", () => {
     if (!lastImage) return;
-    const name = exportFileName("png").replace(/\.png$/i, "-verzaubert.png");
+    const name = exportFileName("png").replace(/\.png$/i, "-illustration.png");
     const link = document.createElement("a");
     link.href = lastImage;
     link.download = name;
@@ -2148,7 +2148,7 @@ function bindEnchantUi() {
     setBusy(true);
     statusEl.hidden = false;
     statusEl.classList.remove("error");
-    statusEl.textContent = "Bildmodell arbeitet an der Illustration …";
+    statusEl.textContent = "Das Bild wird erzeugt …";
     resultEl.hidden = true;
     downloadBtn.hidden = true;
     lastImage = null;
@@ -2159,9 +2159,9 @@ function bindEnchantUi() {
       resultEl.hidden = false;
       downloadBtn.hidden = false;
       statusEl.textContent = background
-        ? "Fertig — mit atmosphärischem Hintergrund."
-        : "Fertig — auf klarer Fläche.";
-      showAppToast("Verzauberte Mindmap ist bereit");
+        ? "Fertig. Vorschau mit Stimmung zum Thema — die Karte im Editor ist unverändert."
+        : "Fertig. Vorschau auf klarer Fläche — die Karte im Editor ist unverändert.";
+      showAppToast("Illustration ist bereit");
     } catch (err) {
       statusEl.classList.add("error");
       statusEl.textContent = err && err.message ? err.message : "Verzaubern fehlgeschlagen";

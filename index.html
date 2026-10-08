@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.css?v=45" />
+    <link rel="stylesheet" href="css/app.css?v=46" />
   </head>
   <body>
     <div id="start" hidden>
@@ -50,7 +50,7 @@
             <button type="button" id="download-pdf" class="btn" role="menuitem">als PDF</button>
           </div>
         </div>
-        <button type="button" id="enchant-open" class="btn btn-primary" title="Mindmap als grafisch ausgefeiltes Bild erzeugen">Verzaubern</button>
+        <button type="button" id="enchant-open" class="btn btn-primary" title="Aus der aktuellen Mindmap ein ausgearbeitetes Bild erzeugen. Die Karte selbst bleibt unverändert.">Illustration</button>
         <button type="button" id="publish" class="btn" title="Karte in die öffentliche Galerie stellen">Veröffentlichen</button>
       </div>
     </header>
@@ -260,30 +260,36 @@
 
     <div id="enchant-dialog" hidden>
       <div class="enchant-card" role="dialog" aria-modal="true" aria-labelledby="enchant-title">
-        <h3 id="enchant-title">Mindmap verzaubern</h3>
+        <h3 id="enchant-title">Illustration erzeugen</h3>
         <p class="enchant-lead">
-          Die aktuelle Karte geht an ein Bildmodell und kommt als grafisch ausgearbeitete Illustration zurück.
-          Struktur und Texte bleiben erhalten.
+          Aus der aktuellen Mindmap wird ein ausgearbeitetes Bild. Die Karte im Editor bleibt unverändert.
+          Das kann eine Minute dauern. Danach siehst du eine Vorschau und kannst das Bild speichern.
         </p>
         <fieldset class="enchant-options">
-          <legend>Hintergrund</legend>
+          <legend>Wie soll der Hintergrund aussehen?</legend>
           <label>
             <input type="radio" name="enchant-bg" value="1" checked />
-            Mit atmosphärischem Hintergrund
+            <span>
+              Mit Stimmung zum Thema
+              <span class="enchant-option-hint">Dezente Illustration hinter der Karte. Die Texte bleiben lesbar.</span>
+            </span>
           </label>
           <label>
             <input type="radio" name="enchant-bg" value="0" />
-            Ohne Hintergrund (klare Fläche)
+            <span>
+              Nur die Karte
+              <span class="enchant-option-hint">Helle, ruhige Fläche ohne Szenerie.</span>
+            </span>
           </label>
         </fieldset>
         <p id="enchant-status" class="enchant-status" hidden></p>
         <div id="enchant-result" class="enchant-result" hidden>
-          <img id="enchant-preview" alt="Verzauberte Mindmap" />
+          <img id="enchant-preview" alt="Erzeugte Illustration der Mindmap" />
         </div>
         <div class="enchant-actions">
           <button type="button" id="enchant-cancel" class="btn btn-ghost">Schließen</button>
           <button type="button" id="enchant-download" class="btn" hidden>Bild speichern</button>
-          <button type="button" id="enchant-run" class="btn btn-primary">Verzaubern</button>
+          <button type="button" id="enchant-run" class="btn btn-primary">Bild erzeugen</button>
         </div>
       </div>
     </div>
@@ -340,7 +346,7 @@
     <script src="js/layout.js?v=34"></script>
     <script src="js/collider.js?v=2"></script>
     <script src="js/shape.js?v=2"></script>
-    <script src="js/app.js?v=56"></script>
+    <script src="js/app.js?v=57"></script>
     <script src="js/chat.js?v=30"></script>
     <script src="js/gallery.js?v=28"></script>
   </body>

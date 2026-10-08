@@ -61,3 +61,11 @@
 - **Erledigt:** Rahmen: Abgerundet, Rechteck, Kapsel, Ellipse, Raute. Strich der ausgehenden Linien: Durchgezogen, Gestrichelt, Gepunktet, Strichpunkt. Die Linie endet auf der jeweiligen Form. Bereich gilt wie bei den anderen Stilfeldern.
 - **Code:** `js/shape.js`, `js/app.js`, `js/layout.js`, `css/app.css`, `index.html`, `api/server.mjs`, `schema/mindmap.document.json`, `schema/mindmap.ops.json`, `README.md`.
 - **Deploy:** mit Qualitätskontrolle-Chat ausgeliefert (Images neu gebaut).
+
+
+## Qualitätskontrolle Chat (2026-10-04)
+
+- **Erledigt:** Live-Tests (Photosynthese, Vertiefen, Stil): Inhalt oft brauchbar, aber Hierarchie-Fehler (Teil-von als Geschwister), Doppelungen, einfarbige Äste, Stil-Ops manchmal fehlend. Prompt geschärft (Hierarchie, Farben an Hauptästen, Layout-/Dash-Mapping). Feedback-Kontroll-Loop: nach strukturellen Ops läuft `mode: "review"` im Hintergrund, Ergebnis bleibt sichtbar; Korrektur nur nach Popup-Bestätigung.
+- **Code:** `api/server.mjs`, `js/chat.js`, `css/app.css`, `index.html`, `schema/mindmap.ops.json`, `README.md`.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
+- **Manuell:** Neue Mindmap → Assistent „Mindmap zu X“ → prüfen, ob Farben und Kontrolle erscheinen; bei Popup Ja/Nein; Stil „links-rechts + gestrichelt“.

@@ -1,12 +1,12 @@
 ---
-zuletztAktualisiert: "2026-10-08T21:34:30+02:00"
+zuletztAktualisiert: "2026-10-08T21:36:00+02:00"
 ---
 
 ## Schnell-Eingabe (2026-10-08)
 
 - **Erledigt:** Am gewählten Knoten **+++** (Hover: Schnell-Eingabe). Modal mit Fokus im Feld. Enter oder **+** legt ein Kind an und leert das Feld für das nächste. Schließen nur über das **×** (Hover: Schnelleingabe-Modus verlassen). Auswahl bleibt am Elternknoten.
 - **Code:** `index.html`, `css/app.css` (`v=48`), `js/app.js` (`v=60`), `js/gallery.js` (`v=29`), `README.md`.
-- **Deploy:** noch nicht — Image `webstack-mindmap` neu bauen.
+- **Deploy:** Image `webstack-mindmap` neu gebaut und gestartet. Live: `app.css?v=48`, `app.js?v=60`, Button `node-quick`.
 - **Prüfung:** Alpha per Enter, Beta per +, leeres Enter legt nichts an, Elternknoten bleibt gewählt, × schließt.
 
 ## Stil-Leiste links mit Vorschau (2026-10-08)

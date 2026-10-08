@@ -1,20 +1,20 @@
 ---
-zuletztAktualisiert: "2026-10-08T16:58:16+02:00"
+zuletztAktualisiert: "2026-10-08T17:03:00+02:00"
 ---
 
 ## Stil-Leiste links mit Vorschau (2026-10-08)
 
 - **Erledigt:** Stil öffnet fest links neben der Karte. Optionen stehen untereinander, jede mit kleiner Vorschau (Bereich, Farbe, Linienform, Strich, Anordnung, Knotendarstellung, Rahmen). Auswahl hebt die Zeile hervor und setzt den Stil wie bisher. „Weiter“ bleibt nur bei Kindknoten sichtbar. Der Dock-Schalter oben/seitlich ist weg.
 - **Code:** `index.html`, `css/app.css` (`v=47`), `js/app.js`, `README.md`.
-- **Deploy:** noch nicht — Image `webstack-mindmap` neu bauen.
+- **Deploy:** Image `webstack-mindmap` neu gebaut und gestartet. Live: `app.css?v=47`, Vorschau-Zeilen in `index.html`.
 - **Prüfung:** Lokal im Browser: Leiste links, Vorschau-Klick Gerade/Gestrichelt/Fläche/Raute, Schließen, „Weiter“ nach Kindknoten.
 
 ## Illustration neu gestalten (2026-10-08)
 
 - **Erledigt:** Neugestaltung bleibt beim Bildmodell, Prompt verlangt zeichengetreue Labels und genau eine Linie pro Kante. Referenz ist PNG bis 2400 px. Dritte Option **Exakt, zum Testen**: Modell malt nur den Hintergrund, die Karte wird pixelgenau darübergelegt.
 - **Code:** `api/server.mjs`, `js/app.js`, `index.html` (`app.js?v=59`).
-- **Deploy:** noch nicht — Images `webstack-mindmap` und `webstack-mindmap-api` neu bauen.
-- **Offen:** Image-Rebuild.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet. API enthält den Modus `exact`.
+- **Offen:** —
 
 ## Illustration statt Dauer-Sperre (2026-10-08)
 

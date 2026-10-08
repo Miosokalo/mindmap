@@ -525,6 +525,50 @@ button:disabled,
   font-weight: 600;
 }
 
+#node-actions #node-quick {
+  position: relative;
+  width: auto;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+#node-actions #node-quick:hover,
+#node-actions #node-quick:focus-visible {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+#node-quick::after {
+  content: "Schnell-Eingabe";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 550;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+#node-quick:hover::after,
+#node-quick:focus-visible::after {
+  opacity: 1;
+}
+
 #node-icon svg,
 #node-delete svg {
   width: 16px;
@@ -822,7 +866,8 @@ button.ai-fab[aria-expanded="true"] .ai-spark {
 #review-dialog,
 #enchant-dialog,
 #icon-pick-dialog,
-#publish-dialog {
+#publish-dialog,
+#quick-dialog {
   position: fixed;
   inset: 0;
   z-index: 25;
@@ -837,14 +882,16 @@ button.ai-fab[aria-expanded="true"] .ai-spark {
 #review-dialog[hidden],
 #enchant-dialog[hidden],
 #icon-pick-dialog[hidden],
-#publish-dialog[hidden] {
+#publish-dialog[hidden],
+#quick-dialog[hidden] {
   display: none;
 }
 
 .review-card,
 .enchant-card,
 .icon-pick-card,
-.publish-card {
+.publish-card,
+.quick-card {
   width: min(480px, 100%);
   max-height: calc(100vh - 40px);
   overflow: auto;
@@ -857,6 +904,103 @@ button.ai-fab[aria-expanded="true"] .ai-spark {
 
 .enchant-card {
   width: min(560px, 100%);
+}
+
+.quick-card {
+  position: relative;
+  width: min(440px, 100%);
+  overflow: visible;
+}
+
+.quick-card h3 {
+  margin: 0 36px 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.quick-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.quick-close:hover,
+.quick-close:focus-visible {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink);
+  border-color: transparent;
+}
+
+.quick-close::after {
+  content: "Schnelleingabe-Modus verlassen";
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 550;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.quick-close:hover::after,
+.quick-close:focus-visible::after {
+  opacity: 1;
+}
+
+.quick-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.quick-lead strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.quick-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+#quick-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 1rem;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.quick-add {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .review-card h3,

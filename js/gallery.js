@@ -69,6 +69,8 @@
     topbar.hidden = true;
     if (editorShell) editorShell.hidden = true;
     if (stylePanel) stylePanel.hidden = true;
+    const quickDialog = document.getElementById("quick-dialog");
+    if (quickDialog) quickDialog.hidden = true;
     if (styleToggle) styleToggle.setAttribute("aria-expanded", "false");
     viewport.hidden = true;
     viewBanner.hidden = true;

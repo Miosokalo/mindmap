@@ -13,7 +13,7 @@ Dann `http://127.0.0.1:8777` öffnen.
 ## Bedienung
 
 - Knoten wählen, ziehen, per Doppelklick umbenennen
-- Über dem gewählten Knoten: **+** legt ein Kind an, Icon setzt/entfernt ein Symbol, der Mülleimer löscht erst beim zweiten Klick
+- Über dem gewählten Knoten: **+** legt ein Kind an, **+++** öffnet die Schnell-Eingabe (Enter oder + legt das nächste Kind an, ohne das Feld zu verlassen), Icon setzt/entfernt ein Symbol, der Mülleimer löscht erst beim zweiten Klick
 - Tab legt ebenfalls einen Unterpunkt an; Entf löscht
 - **Stil** öffnet die Stil-Leiste links neben der Karte. Die Optionen stehen untereinander, jede mit einer kleinen Vorschau (Linien, Strich, Anordnung, Knotenform)
 - **Anordnen** legt nur die ausgehenden Linien des ausgewählten Knotens neu. Der Knoten selbst bleibt, wo er steht

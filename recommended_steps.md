@@ -1,6 +1,13 @@
 ---
-zuletztAktualisiert: "2026-10-08T17:03:00+02:00"
+zuletztAktualisiert: "2026-10-08T21:34:30+02:00"
 ---
+
+## Schnell-Eingabe (2026-10-08)
+
+- **Erledigt:** Am gewählten Knoten **+++** (Hover: Schnell-Eingabe). Modal mit Fokus im Feld. Enter oder **+** legt ein Kind an und leert das Feld für das nächste. Schließen nur über das **×** (Hover: Schnelleingabe-Modus verlassen). Auswahl bleibt am Elternknoten.
+- **Code:** `index.html`, `css/app.css` (`v=48`), `js/app.js` (`v=60`), `js/gallery.js` (`v=29`), `README.md`.
+- **Deploy:** noch nicht — Image `webstack-mindmap` neu bauen.
+- **Prüfung:** Alpha per Enter, Beta per +, leeres Enter legt nichts an, Elternknoten bleibt gewählt, × schließt.
 
 ## Stil-Leiste links mit Vorschau (2026-10-08)
 
@@ -63,12 +70,4 @@ zuletztAktualisiert: "2026-10-08T17:03:00+02:00"
 - **Deploy:** Images neu gebaut/gestartet.
 - **Prüfung:** Galerie → `lucide:wind`; Entfernen; KI → `lucide:atom`; Upload API 200.
 - **Offen:** Commit noch offen.
-
-## Live-Retest KI + Sprache/Scope (2026-10-04)
-
-- **Erledigt:** Live-Test Chat/Icons/Verzaubern/Review. Chat + Review ok; Icons (KI) auf Scope children setzt passende Lucide-Icons. Verzaubern zeigt klaren Hinweis bei fehlendem OpenRouter-Guthaben (402). Qualitätsfix: gemischt englische Stichworte trotz deutschem Auftrag; neuer Map behielt alten Style-Bereich. Prompt: Knotentexte in Auftragssprache; Review erkennt falsche Sprache. `setDocument` setzt Scope auf `node` zurück.
-- **Prüfung:** Photosynthese-Chat → deutsche Labels, Kontrolle ok, 6 Icons. API Kreislaufwirtschaft → „Reduzieren/Wiederverwenden/Recyceln“, „Biologischer/Technischer Kreislauf“. Scope subtree → neue Karte → UI „Nur Auswahl“.
-- **Code:** `api/server.mjs`, `js/app.js`.
-- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
-- **Offen:** Image-Gen/Verzaubern braucht OpenRouter-Credits; Commit der Fixes noch offen.
 

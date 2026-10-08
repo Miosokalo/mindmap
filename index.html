@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.css?v=47" />
+    <link rel="stylesheet" href="css/app.css?v=48" />
   </head>
   <body>
     <div id="start" hidden>
@@ -415,6 +415,7 @@
           <div id="ports"></div>
           <div id="node-actions" hidden>
             <button type="button" id="node-add" title="Kind hinzufügen" aria-label="Kind hinzufügen">+</button>
+            <button type="button" id="node-quick" aria-label="Schnell-Eingabe">+++</button>
             <button type="button" id="node-icon" title="Icon hinzufügen" aria-label="Icon hinzufügen" aria-pressed="false">
               <svg class="node-icon-btn-svg" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -480,6 +481,18 @@
         <button type="submit" id="chat-send" class="btn btn-primary">Senden</button>
       </form>
     </aside>
+
+    <div id="quick-dialog" hidden>
+      <div class="quick-card" role="dialog" aria-modal="true" aria-labelledby="quick-title">
+        <button type="button" id="quick-close" class="quick-close" aria-label="Schnelleingabe-Modus verlassen">×</button>
+        <h3 id="quick-title">Schnell-Eingabe</h3>
+        <p class="quick-lead">Kinder von <strong id="quick-parent"></strong></p>
+        <form id="quick-form" class="quick-form">
+          <input id="quick-input" type="text" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Nächstes Kind" />
+          <button type="submit" class="btn btn-primary quick-add" aria-label="Kind hinzufügen">+</button>
+        </form>
+      </div>
+    </div>
 
     <div id="review-dialog" hidden>
       <div class="review-card" role="dialog" aria-modal="true" aria-labelledby="review-title">
@@ -589,8 +602,8 @@
     <script src="js/layout.js?v=34"></script>
     <script src="js/collider.js?v=2"></script>
     <script src="js/shape.js?v=2"></script>
-    <script src="js/app.js?v=59"></script>
+    <script src="js/app.js?v=60"></script>
     <script src="js/chat.js?v=30"></script>
-    <script src="js/gallery.js?v=28"></script>
+    <script src="js/gallery.js?v=29"></script>
   </body>
 </html>

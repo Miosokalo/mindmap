@@ -1073,9 +1073,62 @@ function clearNodeIcon(nodeId) {
   return true;
 }
 
+let quickParentId = null;
+
+function openQuickEntry(parentId) {
+  const dialog = document.getElementById("quick-dialog");
+  const input = document.getElementById("quick-input");
+  const parentLabel = document.getElementById("quick-parent");
+  const parent = parentId && state.nodes[parentId];
+  if (!dialog || !input || !parent) return;
+  quickParentId = parent.id;
+  if (parentLabel) parentLabel.textContent = parent.text || "Knoten";
+  input.value = "";
+  dialog.hidden = false;
+  requestAnimationFrame(() => input.focus());
+}
+
+function closeQuickEntry() {
+  const dialog = document.getElementById("quick-dialog");
+  const input = document.getElementById("quick-input");
+  quickParentId = null;
+  if (input) input.value = "";
+  if (dialog) dialog.hidden = true;
+}
+
+function bindQuickEntry() {
+  const dialog = document.getElementById("quick-dialog");
+  const form = document.getElementById("quick-form");
+  const input = document.getElementById("quick-input");
+  const closeBtn = document.getElementById("quick-close");
+  if (!dialog || !form || !input || !closeBtn) return;
+  dialog.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+  });
+  closeBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeQuickEntry();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const text = input.value.trim();
+    const parent = quickParentId && state.nodes[quickParentId];
+    if (!text || !parent) {
+      input.focus();
+      return;
+    }
+    addChild(quickParentId, { text, keepParent: true });
+    const parentLabel = document.getElementById("quick-parent");
+    if (parentLabel) parentLabel.textContent = parent.text || "Knoten";
+    input.value = "";
+    input.focus();
+  });
+}
+
 function bindNodeActions() {
   const bar = document.getElementById("node-actions");
   const add = document.getElementById("node-add");
+  const quick = document.getElementById("node-quick");
   const iconBtn = document.getElementById("node-icon");
   const del = document.getElementById("node-delete");
   if (!bar || !add || !del) return;
@@ -1087,6 +1140,13 @@ function bindNodeActions() {
     confirmDeleteId = null;
     addChild(state.selectedId || "root");
   });
+  if (quick) {
+    quick.addEventListener("click", (event) => {
+      event.stopPropagation();
+      confirmDeleteId = null;
+      openQuickEntry(state.selectedId);
+    });
+  }
   if (iconBtn) {
     iconBtn.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -1135,6 +1195,7 @@ function addChild(parentId, options) {
   if (!parent) return null;
   const opts = options && typeof options === "object" ? options : {};
   const silent = opts.silent === true;
+  const keepParent = opts.keepParent === true;
   if (!silent) pushHistory();
   const label = typeof opts.text === "string" && opts.text.trim() ? opts.text.trim().slice(0, 200) : "Neu";
   const siblings = childrenOf(parentId);
@@ -1158,14 +1219,16 @@ function addChild(parentId, options) {
   if (parent.shape) state.nodes[id].shape = parent.shape;
   if (parent.look) state.nodes[id].look = parent.look;
   if (Number.isFinite(parent.reach)) state.nodes[id].reach = parent.reach;
-  state.selectedId = id;
+  state.selectedId = keepParent ? parentId : id;
   if (silent) return id;
   relayoutOutgoing(state.nodes, parentId, state.style, textWidth);
   if (typeof antiCollide === "function") antiCollide(state.nodes, state.style.line);
   saveState();
   render();
-  const text = nodesEl.querySelector(`[data-id="${id}"] .node-text`);
-  if (text) beginEdit(id, text);
+  if (!keepParent) {
+    const text = nodesEl.querySelector(`[data-id="${id}"] .node-text`);
+    if (text) beginEdit(id, text);
+  }
   return id;
 }
 
@@ -2660,6 +2723,7 @@ window.Mindmap = Mindmap;
 bindEnchantUi();
 bindIconPickUi();
 bindStylePanel();
+bindQuickEntry();
 
 const iconsAiButton = document.getElementById("style-icons-ai");
 if (iconsAiButton) {

@@ -84,3 +84,11 @@
 - **Code:** `index.html`, `css/app.css`, `js/app.js`, `api/server.mjs`, `README.md`.
 - **Deploy:** Images neu bauen.
 - **Manuell:** Editor → Verzaubern → beide Hintergrund-Optionen; bei fehlendem OpenRouter-Guthaben klarer Fehlerhinweis.
+
+## Live-Retest KI + Sprache/Scope (2026-10-04)
+
+- **Erledigt:** Live-Test Chat/Icons/Verzaubern/Review. Chat + Review ok; Icons (KI) auf Scope children setzt passende Lucide-Icons. Verzaubern zeigt klaren Hinweis bei fehlendem OpenRouter-Guthaben (402). Qualitätsfix: gemischt englische Stichworte trotz deutschem Auftrag; neuer Map behielt alten Style-Bereich. Prompt: Knotentexte in Auftragssprache; Review erkennt falsche Sprache. `setDocument` setzt Scope auf `node` zurück.
+- **Prüfung:** Photosynthese-Chat → deutsche Labels, Kontrolle ok, 6 Icons. API Kreislaufwirtschaft → „Reduzieren/Wiederverwenden/Recyceln“, „Biologischer/Technischer Kreislauf“. Scope subtree → neue Karte → UI „Nur Auswahl“.
+- **Code:** `api/server.mjs`, `js/app.js`.
+- **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
+- **Offen:** Image-Gen/Verzaubern braucht OpenRouter-Credits; Commit der Fixes noch offen.

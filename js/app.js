@@ -1558,6 +1558,39 @@ function syncStyleControls() {
   const anchors = document.getElementById("show-anchors");
   if (anchors) anchors.checked = state.showAnchors !== false;
   syncArrangementControl();
+  syncStylePreviews();
+}
+
+function syncStylePreviews() {
+  for (const group of document.querySelectorAll(".style-options")) {
+    const select = document.getElementById(group.dataset.for);
+    if (!select) continue;
+    for (const button of group.querySelectorAll(".style-option")) {
+      const option = select.querySelector(`option[value="${button.dataset.value}"]`);
+      const unavailable = Boolean(option && option.hidden);
+      button.hidden = unavailable;
+      const selected = !unavailable && button.dataset.value === select.value;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-checked", selected ? "true" : "false");
+    }
+  }
+}
+
+function bindStylePreviews() {
+  const panel = document.getElementById("style-panel");
+  if (!panel || panel.dataset.previewsBound === "1") return;
+  panel.dataset.previewsBound = "1";
+  panel.addEventListener("click", (event) => {
+    const button = event.target.closest(".style-option");
+    if (!button || button.hidden) return;
+    const group = button.closest(".style-options");
+    const select = group && document.getElementById(group.dataset.for);
+    if (!select || select.value === button.dataset.value) return;
+    select.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    select.value = button.dataset.value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    syncStylePreviews();
+  });
 }
 
 const styleTarget = {};
@@ -1643,37 +1676,6 @@ function closeDownloadMenu() {
   if (toggle) toggle.setAttribute("aria-expanded", "false");
 }
 
-const STYLE_DOCK_KEY = "mindmap.styleDock";
-
-function styleDockMode() {
-  const panel = document.getElementById("style-panel");
-  const raw = panel && panel.dataset.dock === "side" ? "side" : "top";
-  return raw;
-}
-
-function applyStyleDock(mode) {
-  const panel = document.getElementById("style-panel");
-  const shell = document.getElementById("editor-shell");
-  const dockBtn = document.getElementById("style-dock-toggle");
-  const next = mode === "side" ? "side" : "top";
-  if (panel) panel.dataset.dock = next;
-  if (shell) shell.classList.toggle("style-dock-side", next === "side");
-  if (dockBtn) {
-    const toSide = next === "top";
-    dockBtn.title = toSide ? "Als linke Seitenleiste anzeigen" : "Als obere Leiste anzeigen";
-    dockBtn.setAttribute("aria-label", toSide ? "Stil-Leiste nach links kippen" : "Stil-Leiste nach oben kippen");
-    const sideIcon = dockBtn.querySelector(".dock-icon-side");
-    const topIcon = dockBtn.querySelector(".dock-icon-top");
-    if (sideIcon) sideIcon.hidden = !toSide;
-    if (topIcon) topIcon.hidden = toSide;
-  }
-  try {
-    localStorage.setItem(STYLE_DOCK_KEY, next);
-  } catch {
-    /* ignore */
-  }
-}
-
 function setStylePanelOpen(open) {
   const panel = document.getElementById("style-panel");
   const toggle = document.getElementById("style-toggle");
@@ -1699,16 +1701,10 @@ function bindStylePanel() {
   const panel = document.getElementById("style-panel");
   const toggle = document.getElementById("style-toggle");
   const closeBtn = document.getElementById("style-panel-close");
-  const dockBtn = document.getElementById("style-dock-toggle");
   if (!panel || !toggle) return;
 
-  let saved = "top";
-  try {
-    saved = localStorage.getItem(STYLE_DOCK_KEY) === "side" ? "side" : "top";
-  } catch {
-    saved = "top";
-  }
-  applyStyleDock(saved);
+  bindStylePreviews();
+  syncStylePreviews();
 
   toggle.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1716,17 +1712,6 @@ function bindStylePanel() {
   });
   if (closeBtn) {
     closeBtn.addEventListener("click", () => closeStylePanel());
-  }
-  if (dockBtn) {
-    dockBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      applyStyleDock(styleDockMode() === "side" ? "top" : "side");
-      if (panel.hidden) setStylePanelOpen(true);
-      requestAnimationFrame(() => {
-        if (typeof centerIfNeeded === "function") centerIfNeeded();
-        if (typeof placeNodeActions === "function") placeNodeActions();
-      });
-    });
   }
 }
 
@@ -1912,7 +1897,8 @@ function pdfFromJpeg(jpeg, width, height) {
   return concatBytes(parts);
 }
 
-function renderMapCanvas() {
+function renderMapCanvas(options) {
+  const paper = !options || options.paper !== false;
   const bounds = contentBounds();
   const pad = 48;
   const cssW = Math.max(1, Math.ceil(bounds.maxX - bounds.minX + pad * 2));
@@ -1925,15 +1911,17 @@ function renderMapCanvas() {
   ctx.scale(scale, scale);
   ctx.translate(pad - bounds.minX, pad - bounds.minY);
 
-  ctx.fillStyle = "#f6f3ee";
-  ctx.fillRect(bounds.minX - pad, bounds.minY - pad, cssW, cssH);
-  ctx.fillStyle = "rgba(28, 25, 23, 0.08)";
-  const step = 22;
-  const originX = bounds.minX - pad;
-  const originY = bounds.minY - pad;
-  for (let y = Math.ceil(originY / step) * step; y < originY + cssH; y += step) {
-    for (let x = Math.ceil(originX / step) * step; x < originX + cssW; x += step) {
-      ctx.fillRect(x, y, 1, 1);
+  if (paper) {
+    ctx.fillStyle = "#f6f3ee";
+    ctx.fillRect(bounds.minX - pad, bounds.minY - pad, cssW, cssH);
+    ctx.fillStyle = "rgba(28, 25, 23, 0.08)";
+    const step = 22;
+    const originX = bounds.minX - pad;
+    const originY = bounds.minY - pad;
+    for (let y = Math.ceil(originY / step) * step; y < originY + cssH; y += step) {
+      for (let x = Math.ceil(originX / step) * step; x < originX + cssW; x += step) {
+        ctx.fillRect(x, y, 1, 1);
+      }
     }
   }
 
@@ -2051,35 +2039,76 @@ function compactTreeForApi() {
   }));
 }
 
-function canvasToJpegDataUrl(source, maxSide = 1600, quality = 0.72) {
-  const scale = Math.min(1, maxSide / Math.max(source.width, source.height, 1));
-  const w = Math.max(1, Math.round(source.width * scale));
-  const h = Math.max(1, Math.round(source.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#f6f3ee";
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(source, 0, 0, w, h);
-  return { dataUrl: canvas.toDataURL("image/jpeg", quality), width: w, height: h };
+function canvasToPngDataUrl(source, maxSide = 2400) {
+  const limit = 2_200_000;
+  let side = maxSide;
+  let packed = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const scale = Math.min(1, side / Math.max(source.width, source.height, 1));
+    const w = Math.max(1, Math.round(source.width * scale));
+    const h = Math.max(1, Math.round(source.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#f6f3ee";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(source, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/png");
+    packed = { dataUrl, width: w, height: h };
+    if (dataUrl.length <= limit) return packed;
+    side = Math.round(side * 0.72);
+  }
+  return packed;
 }
 
-async function requestEnchantedMap({ background }) {
+function compositeExactMap(backgroundUrl, mapCanvas) {
+  return new Promise((resolve, reject) => {
+    const bg = new Image();
+    bg.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = bg.naturalWidth || bg.width;
+      canvas.height = bg.naturalHeight || bg.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+      const margin = 0.075;
+      const maxW = canvas.width * (1 - margin * 2);
+      const maxH = canvas.height * (1 - margin * 2);
+      const scale = Math.min(maxW / mapCanvas.width, maxH / mapCanvas.height);
+      const w = mapCanvas.width * scale;
+      const h = mapCanvas.height * scale;
+      ctx.drawImage(mapCanvas, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    bg.onerror = () => reject(new Error("Hintergrundbild konnte nicht gelesen werden"));
+    bg.src = backgroundUrl;
+  });
+}
+
+async function requestEnchantedMap(mode) {
   await preloadExportIcons();
-  const source = renderMapCanvas();
-  const packed = canvasToJpegDataUrl(source);
+  const exact = mode === "exact";
+  const background = mode !== "restyle-plain";
+  const source = renderMapCanvas(exact ? { paper: false } : undefined);
+  const title = (state.nodes.root && state.nodes.root.text) || "Mindmap";
+  const body = {
+    mode: exact ? "exact" : "restyle",
+    background,
+    width: source.width,
+    height: source.height,
+    title,
+  };
+  if (!exact) {
+    const packed = canvasToPngDataUrl(source);
+    body.image = packed.dataUrl;
+    body.width = packed.width;
+    body.height = packed.height;
+    body.tree = compactTreeForApi();
+  }
   const res = await fetch("/api/enchant", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      image: packed.dataUrl,
-      width: packed.width,
-      height: packed.height,
-      background: Boolean(background),
-      title: (state.nodes.root && state.nodes.root.text) || "Mindmap",
-      tree: compactTreeForApi(),
-    }),
+    body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => null);
   if (!res.ok || !data || data.error) {
@@ -2088,7 +2117,8 @@ async function requestEnchantedMap({ background }) {
   if (typeof data.image !== "string" || !data.image.startsWith("data:image/")) {
     throw new Error("Antwort enthielt kein Bild");
   }
-  return data;
+  if (!exact) return data;
+  return { image: await compositeExactMap(data.image, source), mode: "exact" };
 }
 
 function bindEnchantUi() {
@@ -2143,24 +2173,27 @@ function bindEnchantUi() {
 
   runBtn.addEventListener("click", async () => {
     if (busy) return;
-    const bgInput = dialog.querySelector('input[name="enchant-bg"]:checked');
-    const background = !bgInput || bgInput.value !== "0";
+    const modeInput = dialog.querySelector('input[name="enchant-mode"]:checked');
+    const mode = modeInput ? modeInput.value : "restyle-bg";
     setBusy(true);
     statusEl.hidden = false;
     statusEl.classList.remove("error");
-    statusEl.textContent = "Das Bild wird erzeugt …";
+    statusEl.textContent = mode === "exact" ? "Hintergrund wird gemalt, die Karte bleibt exakt …" : "Das Bild wird neu gestaltet …";
     resultEl.hidden = true;
     downloadBtn.hidden = true;
     lastImage = null;
     try {
-      const data = await requestEnchantedMap({ background });
+      const data = await requestEnchantedMap(mode);
       lastImage = data.image;
       preview.src = data.image;
       resultEl.hidden = false;
       downloadBtn.hidden = false;
-      statusEl.textContent = background
-        ? "Fertig. Vorschau mit Stimmung zum Thema — die Karte im Editor ist unverändert."
-        : "Fertig. Vorschau auf klarer Fläche — die Karte im Editor ist unverändert.";
+      statusEl.textContent =
+        mode === "exact"
+          ? "Fertig. Wörter und Linien sind unverändert aus der Karte. Die Karte im Editor auch."
+          : mode === "restyle-plain"
+            ? "Fertig. Neu gestaltet auf klarer Fläche. Die Wörter sollen die der Karte sein."
+            : "Fertig. Neu gestaltet mit Stimmung. Die Wörter sollen die der Karte sein.";
       showAppToast("Illustration ist bereit");
     } catch (err) {
       statusEl.classList.add("error");

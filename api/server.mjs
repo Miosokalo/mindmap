@@ -13,7 +13,9 @@
  *   POST /api/icons/upload       { image (data-URL), label? } -> { icon: "gen:<id>", entry }
  *
  * Verzaubern (grafische Mindmap-Illustration):
- *   POST /api/enchant  { image (data-URL), tree?, background?, title? } -> { image (data-URL), model }
+ *   POST /api/enchant  { mode?, image?, tree?, background?, title?, width?, height? } -> { image, model, mode }
+ *        mode "restyle" (Default): Bildmodell zeichnet die Karte neu, image ist Pflicht.
+ *        mode "exact": Bildmodell malt nur den Hintergrund, ohne Kartenbild und ohne Knotentexte.
  *
  * Galerie (Community-Mindmaps, jede Karte eine JSON-Datei unter DATA_DIR):
  *   GET  /api/maps        -> { maps: [{ id, title, nodeCount, publishedAt }] }
@@ -968,57 +970,59 @@ async function callOpenRouterImage(prompt, clientAbort, options = {}) {
   }
 }
 
-function treeOutline(nodes, limit = MAX_ENCHANT_TREE_NODES) {
-  if (!Array.isArray(nodes) || !nodes.length) return "";
-  const byParent = new Map();
-  for (const node of nodes.slice(0, limit)) {
-    if (!node || typeof node.id !== "string") continue;
-    const parent = node.parentId || null;
-    if (!byParent.has(parent)) byParent.set(parent, []);
-    byParent.get(parent).push(node);
-  }
-  for (const list of byParent.values()) {
-    list.sort((a, b) => (a.order || 0) - (b.order || 0));
-  }
-  const lines = [];
-  const walk = (parentId, depth) => {
-    const kids = byParent.get(parentId) || [];
-    for (const node of kids) {
-      const text = String(node.text || "").replace(/\s+/g, " ").trim().slice(0, 80);
-      if (!text) continue;
-      lines.push(`${"  ".repeat(depth)}- ${text}`);
-      if (lines.length >= limit) return;
-      walk(node.id, depth + 1);
-      if (lines.length >= limit) return;
-    }
-  };
-  const root = nodes.find((n) => n && n.id === "root") || nodes[0];
-  if (root) {
-    lines.push(`- ${String(root.text || "Mindmap").replace(/\s+/g, " ").trim().slice(0, 80)}`);
-    walk(root.id, 1);
-  } else {
-    walk(null, 0);
-  }
-  return lines.join("\n");
+function enchantLabel(node) {
+  return String((node && node.text) || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
 }
 
-function enchantPrompt({ title, outline, background }) {
+function enchantVerbatim(nodes) {
+  const labels = [];
+  const edges = [];
+  const byId = new Map();
+  for (const node of nodes) {
+    if (!node || typeof node.id !== "string") continue;
+    byId.set(node.id, node);
+    const text = enchantLabel(node);
+    if (text) labels.push(text);
+  }
+  for (const node of nodes) {
+    if (!node || !node.parentId) continue;
+    const from = enchantLabel(byId.get(node.parentId));
+    const to = enchantLabel(node);
+    if (!from || !to) continue;
+    edges.push(`${from} -> ${to}`);
+  }
+  return { labels, edges };
+}
+
+function enchantPrompt({ title, labels, edges, background, exact }) {
   const topic = title || "Mindmap";
+  if (exact) {
+    return [
+      `Paint only a calm atmospheric background for a poster about "${topic}".`,
+      "No text, no letters, no words, no numbers, no boxes, no nodes, no arrows, no diagrams, no lines, no icons.",
+      "Soft low-contrast illustration with an empty center so a diagram can sit on top.",
+      "No watermark.",
+    ].join("\n\n");
+  }
   const bg = background
-    ? "Add a tasteful atmospheric background that fits the topic (soft illustration, subtle texture or scenic mood). Keep all text clearly readable; do not bury labels in busy areas."
-    : "Use a clean plain or softly gradient paper-like background without scenery. No decorative wallpaper, no photo backdrop — focus on the diagram itself.";
+    ? "Add a tasteful atmospheric background that fits the topic. Keep every label clearly readable; do not bury words in busy areas."
+    : "Use a clean plain or softly gradient paper-like background. No scenery, no decorative wallpaper, no photo backdrop.";
+  const labelBlock = (labels.length ? labels : [topic]).map((text) => `- ${text}`).join("\n");
+  const edgeBlock = (edges.length ? edges : ["(none)"]).map((text) => `- ${text}`).join("\n");
   return [
-    "You are redesigning a mind map into a polished graphic illustration.",
-    "A reference image of the current interactive mind map is attached — preserve its structure, hierarchy, node labels, and relative layout.",
-    "Improve visual craft: refined typography, elegant node shapes, harmonious colors, smooth connectors, balanced spacing, professional poster quality.",
-    "Keep EVERY label text accurate and legible in German as given. Do not invent new branches or drop existing ones.",
-    "No watermarks, no UI chrome, no browser window, no toolbars, no cursor.",
+    "You are redrawing a mind map as a polished graphic poster.",
+    "Change the visual craft: node shapes, colors, spacing, alignment, and connector style. Keep the same nodes and the same parent-child links.",
+    "A reference image is attached. Copy every label below character for character, including repeated wording. Do not correct spelling, do not translate, do not merge two labels into one, do not invent words.",
+    `Labels:\n${labelBlock}`,
+    "Connectors: draw exactly one line for each pair below. Do not add a second line between the same two nodes. Do not add any other connection.",
+    edgeBlock,
     bg,
+    "No watermarks, no UI chrome, no browser window, no toolbars, no cursor.",
     `Central topic: ${topic}.`,
-    outline ? `Structure (indent = hierarchy):\n${outline}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  ].join("\n\n");
 }
 
 function parseDataUrlImage(dataUrl) {
@@ -1066,17 +1070,18 @@ async function handleEnchant(req, res) {
     return;
   }
 
-  const image = parseDataUrlImage(parsed.image);
-  if (!image) {
+  const exact = parsed.mode === "exact";
+  const image = exact ? null : parseDataUrlImage(parsed.image);
+  if (!exact && !image) {
     sendJson(res, 400, { error: "image (data-URL PNG/JPEG/WebP) wird benötigt" });
     return;
   }
   const background = parsed.background !== false;
   const title = str(parsed.title, MAX_TITLE_CHARS) || "Mindmap";
-  const tree = Array.isArray(parsed.tree) ? parsed.tree.slice(0, MAX_ENCHANT_TREE_NODES) : [];
-  const outline = treeOutline(tree);
+  const tree = exact || !Array.isArray(parsed.tree) ? [] : parsed.tree.slice(0, MAX_ENCHANT_TREE_NODES);
+  const { labels, edges } = enchantVerbatim(tree);
   const aspectRatio = aspectFromSize(parsed.width, parsed.height);
-  const prompt = enchantPrompt({ title, outline, background });
+  const prompt = enchantPrompt({ title, labels, edges, background, exact });
 
   const clientAbort = new AbortController();
   res.on("close", () => {
@@ -1085,19 +1090,15 @@ async function handleEnchant(req, res) {
 
   try {
     holdOpen(res);
-    const bytes = await callOpenRouterImage(prompt, clientAbort.signal, {
-      aspectRatio,
-      outputFormat: "png",
-      inputReferences: [
-        {
-          type: "image_url",
-          image_url: { url: image.dataUrl },
-        },
-      ],
-    });
+    const imageOptions = { aspectRatio, outputFormat: "png" };
+    if (image) {
+      imageOptions.inputReferences = [{ type: "image_url", image_url: { url: image.dataUrl } }];
+    }
+    const bytes = await callOpenRouterImage(prompt, clientAbort.signal, imageOptions);
     const out = `data:image/png;base64,${bytes.toString("base64")}`;
-    log(ip, tier, MODEL_IMAGE, "enchant", background ? "bg" : "plain", `bytes=${bytes.length}`);
-    sendJson(res, 200, { image: out, model: MODEL_IMAGE, background });
+    const mode = exact ? "exact" : "restyle";
+    log(ip, tier, MODEL_IMAGE, "enchant", mode, background ? "bg" : "plain", `bytes=${bytes.length}`);
+    sendJson(res, 200, { image: out, model: MODEL_IMAGE, background, mode });
   } catch (err) {
     if (err.name === "AbortError") {
       if (clientAbort.signal.aborted || res.writableEnded) {

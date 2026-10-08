@@ -1,6 +1,20 @@
 ---
-zuletztAktualisiert: "2026-10-08T14:33:24+02:00"
+zuletztAktualisiert: "2026-10-08T16:58:16+02:00"
 ---
+
+## Stil-Leiste links mit Vorschau (2026-10-08)
+
+- **Erledigt:** Stil öffnet fest links neben der Karte. Optionen stehen untereinander, jede mit kleiner Vorschau (Bereich, Farbe, Linienform, Strich, Anordnung, Knotendarstellung, Rahmen). Auswahl hebt die Zeile hervor und setzt den Stil wie bisher. „Weiter“ bleibt nur bei Kindknoten sichtbar. Der Dock-Schalter oben/seitlich ist weg.
+- **Code:** `index.html`, `css/app.css` (`v=47`), `js/app.js`, `README.md`.
+- **Deploy:** noch nicht — Image `webstack-mindmap` neu bauen.
+- **Prüfung:** Lokal im Browser: Leiste links, Vorschau-Klick Gerade/Gestrichelt/Fläche/Raute, Schließen, „Weiter“ nach Kindknoten.
+
+## Illustration neu gestalten (2026-10-08)
+
+- **Erledigt:** Neugestaltung bleibt beim Bildmodell, Prompt verlangt zeichengetreue Labels und genau eine Linie pro Kante. Referenz ist PNG bis 2400 px. Dritte Option **Exakt, zum Testen**: Modell malt nur den Hintergrund, die Karte wird pixelgenau darübergelegt.
+- **Code:** `api/server.mjs`, `js/app.js`, `index.html` (`app.js?v=59`).
+- **Deploy:** noch nicht — Images `webstack-mindmap` und `webstack-mindmap-api` neu bauen.
+- **Offen:** Image-Rebuild.
 
 ## Illustration statt Dauer-Sperre (2026-10-08)
 
@@ -57,18 +71,4 @@ zuletztAktualisiert: "2026-10-08T14:33:24+02:00"
 - **Code:** `api/server.mjs`, `js/app.js`.
 - **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
 - **Offen:** Image-Gen/Verzaubern braucht OpenRouter-Credits; Commit der Fixes noch offen.
-
-## Verzaubern-Button (2026-10-04)
-
-- **Erledigt:** Button **Verzaubern** in der Kopfleiste. Dialog: mit/ohne atmosphärischen Hintergrund. Client sendet Referenzbild (JPEG) + Hierarchie-Text an `POST /api/enchant`; OpenRouter-Bildmodell liefert Illustration; Vorschau + PNG-Download.
-- **Code:** `index.html`, `css/app.css`, `js/app.js`, `api/server.mjs`, `README.md`.
-- **Deploy:** Images neu bauen.
-- **Manuell:** Editor → Verzaubern → beide Hintergrund-Optionen; bei fehlendem OpenRouter-Guthaben klarer Fehlerhinweis.
-
-## Scope Kinder + Icons/Image-Gen (2026-10-04)
-
-- **Erledigt:** Style-Bereich um „Auswahl + nächste Ebene“ (`children`). Icons am Knoten (`lucide:` / `gen:`), Lucide-Pack (~181) + Katalog im Repo, Style-Button **Icons (KI)**, Chat-Op `icon`/`auto`, API `GET/POST /api/icons*`, generierte PNGs unter `/data/icons` (Volume), Image-Gen via OpenRouter (`OPENROUTER_MODEL_IMAGE`).
-- **Code:** `js/app.js`, `js/chat.js`, `css/app.css`, `index.html`, `api/server.mjs`, `icons/*`, Schemas, Dockerfiles, `README.md`, `.env.example`.
-- **Deploy:** Images neu bauen/starten.
-- **Manuell:** Bereich „Auswahl + nächste Ebene“ → Farbe; **Icons (KI)**; Chat „setze Icons auf die Hauptäste“. Lucide-Assign live ok. Image-Gen braucht OpenRouter-Guthaben (aktuell 402 Insufficient credits) — danach wächst `/data/icons`.
 

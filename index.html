@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.css?v=46" />
+    <link rel="stylesheet" href="css/app.css?v=47" />
   </head>
   <body>
     <div id="start" hidden>
@@ -56,115 +56,350 @@
     </header>
 
     <div id="editor-shell" class="editor-shell">
-      <aside id="style-panel" class="style-panel" data-dock="top" hidden>
+      <aside id="style-panel" class="style-panel" hidden>
         <div class="style-panel-head">
           <h2 class="style-panel-title">Stil</h2>
-          <div class="style-panel-tools">
-            <button
-              type="button"
-              id="style-dock-toggle"
-              class="btn btn-ghost style-dock-toggle"
-              title="Als linke Seitenleiste anzeigen"
-              aria-label="Stil-Leiste nach links kippen"
-            >
-              <svg class="dock-icon dock-icon-side" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
-                <path d="M9 4v16" fill="none" stroke="currentColor" stroke-width="1.8" />
-                <path d="M3 4h6v16H3z" fill="currentColor" opacity="0.22" />
-              </svg>
-              <svg class="dock-icon dock-icon-top" viewBox="0 0 24 24" aria-hidden="true" hidden>
-                <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
-                <path d="M3 10h18" fill="none" stroke="currentColor" stroke-width="1.8" />
-                <path d="M3 4h18v6H3z" fill="currentColor" opacity="0.22" />
-              </svg>
-            </button>
-            <button type="button" id="style-panel-close" class="btn btn-ghost style-panel-close" aria-label="Stil schließen">Schließen</button>
-          </div>
+          <button type="button" id="style-panel-close" class="btn btn-ghost style-panel-close" aria-label="Stil schließen">Schließen</button>
         </div>
         <div class="style-panel-body">
           <section class="style-group">
             <h3 class="style-group-title">Bereich</h3>
-            <div class="styles">
-              <label id="scope-field" title="Nur Auswahl: markierter Knoten. Auswahl + nächste Ebene: Knoten und direkte Kinder. Gesamter Unterbaum: alle Nachfahren.">
-                Gilt für
-                <select id="style-scope">
-                  <option value="node">Nur Auswahl</option>
-                  <option value="children">Auswahl + nächste Ebene</option>
-                  <option value="subtree">Gesamter Unterbaum</option>
-                </select>
-              </label>
-              <label>
-                Farbe
-                <select id="style-color">
-                  <option value="color">Bunt</option>
-                  <option value="mono">Schwarz-Weiß</option>
-                </select>
-              </label>
+            <div class="style-options" role="radiogroup" aria-label="Gilt für" data-for="style-scope" title="Nur Auswahl: markierter Knoten. Auswahl + nächste Ebene: Knoten und direkte Kinder. Gesamter Unterbaum: alle Nachfahren.">
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="node">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M16 16H28M16 16 28 8M34 24h12" fill="none" stroke="#94a3b8" stroke-width="1.4" />
+                    <circle cx="10" cy="16" r="5" fill="#0f766e" />
+                    <circle cx="32" cy="8" r="4" fill="#e2e8f0" />
+                    <circle cx="32" cy="24" r="4" fill="#e2e8f0" />
+                    <circle cx="52" cy="24" r="3.5" fill="#e2e8f0" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Nur Auswahl</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="children">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M16 16H28M16 16 28 8M34 24h12" fill="none" stroke="#94a3b8" stroke-width="1.4" />
+                    <circle cx="10" cy="16" r="5" fill="#0f766e" />
+                    <circle cx="32" cy="8" r="4" fill="#0f766e" />
+                    <circle cx="32" cy="24" r="4" fill="#0f766e" />
+                    <circle cx="52" cy="24" r="3.5" fill="#e2e8f0" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Auswahl + nächste Ebene</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="subtree">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M16 16H28M16 16 28 8M34 24h12" fill="none" stroke="#0f766e" stroke-width="1.4" />
+                    <circle cx="10" cy="16" r="5" fill="#0f766e" />
+                    <circle cx="32" cy="8" r="4" fill="#0f766e" />
+                    <circle cx="32" cy="24" r="4" fill="#0f766e" />
+                    <circle cx="52" cy="24" r="3.5" fill="#0f766e" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Gesamter Unterbaum</span>
+              </button>
             </div>
+            <select id="style-scope" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="node" selected>Nur Auswahl</option>
+              <option value="children">Auswahl + nächste Ebene</option>
+              <option value="subtree">Gesamter Unterbaum</option>
+            </select>
+            <div class="style-options" role="radiogroup" aria-label="Farbe" data-for="style-color">
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="color">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="4" y="9" width="16" height="14" rx="4" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.4" />
+                    <rect x="24" y="9" width="16" height="14" rx="4" fill="#ffedd5" stroke="#c2410c" stroke-width="1.4" />
+                    <rect x="44" y="9" width="16" height="14" rx="4" fill="#ffe4e6" stroke="#be123c" stroke-width="1.4" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Bunt</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="mono">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="4" y="9" width="16" height="14" rx="4" fill="#f8fafc" stroke="#0f172a" stroke-width="1.4" />
+                    <rect x="24" y="9" width="16" height="14" rx="4" fill="#e2e8f0" stroke="#334155" stroke-width="1.4" />
+                    <rect x="44" y="9" width="16" height="14" rx="4" fill="#fff" stroke="#64748b" stroke-width="1.4" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Schwarz-Weiß</span>
+              </button>
+            </div>
+            <select id="style-color" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="color" selected>Bunt</option>
+              <option value="mono">Schwarz-Weiß</option>
+            </select>
           </section>
           <section class="style-group">
             <h3 class="style-group-title">Linien</h3>
-            <div class="styles">
-              <label>
-                Form
-                <select id="style-line">
-                  <option value="curve">Geschwungen</option>
-                  <option value="straight">Gerade</option>
-                  <option value="elbow">Abgewinkelt</option>
-                </select>
-              </label>
-              <label title="Strichart der ausgehenden Linien.">
-                Strich
-                <select id="style-dash">
-                  <option value="solid">Durchgezogen</option>
-                  <option value="dashed">Gestrichelt</option>
-                  <option value="dotted">Gepunktet</option>
-                  <option value="dashdot">Strichpunkt</option>
-                </select>
-              </label>
-              <label id="layout-field" title="Anordnung der ausgehenden Linien.">
-                Anordnung
-                <select id="style-layout">
-                  <option value="continue">Weiter</option>
-                  <option value="around">Rundherum</option>
-                  <option value="horizontal">Links–Rechts</option>
-                  <option value="vertical">Oben–Unten</option>
-                  <option value="radial">Gleichmäßig</option>
-                </select>
-              </label>
-              <label id="reach-field" title="Abstand der ausgehenden Linien.">
-                Länge
-                <input id="style-reach" type="range" min="0" max="160" step="2" value="14" />
-              </label>
-              <label id="anchor-field" class="style-check" title="Ankerpunkte am gewählten Knoten anzeigen.">
-                <input id="show-anchors" type="checkbox" checked />
-                Anker zeigen
-              </label>
+            <div class="style-options" role="radiogroup" aria-label="Form" data-for="style-line">
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="curve">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="3" y="11" width="14" height="10" rx="3" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.3" />
+                    <path d="M17 16c12 0 14-9 30-7" fill="none" stroke="#0f766e" stroke-width="1.7" stroke-linecap="round" />
+                    <rect x="47" y="4" width="14" height="10" rx="3" fill="#fff" stroke="#0f766e" stroke-width="1.3" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Geschwungen</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="straight">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="3" y="11" width="14" height="10" rx="3" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.3" />
+                    <path d="M17 16h30" fill="none" stroke="#0f766e" stroke-width="1.7" stroke-linecap="round" />
+                    <rect x="47" y="11" width="14" height="10" rx="3" fill="#fff" stroke="#0f766e" stroke-width="1.3" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Gerade</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="elbow">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="3" y="16" width="14" height="10" rx="3" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.3" />
+                    <path d="M17 21h14V9h16" fill="none" stroke="#0f766e" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" />
+                    <rect x="47" y="4" width="14" height="10" rx="3" fill="#fff" stroke="#0f766e" stroke-width="1.3" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Abgewinkelt</span>
+              </button>
             </div>
+            <select id="style-line" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="curve" selected>Geschwungen</option>
+              <option value="straight">Gerade</option>
+              <option value="elbow">Abgewinkelt</option>
+            </select>
+            <div class="style-options" role="radiogroup" aria-label="Strich" data-for="style-dash" title="Strichart der ausgehenden Linien.">
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="solid">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M6 16h52" fill="none" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Durchgezogen</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="dashed">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M6 16h52" fill="none" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="8 5" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Gestrichelt</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="dotted">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M6 16h52" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0.4 6" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Gepunktet</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="dashdot">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M6 16h52" fill="none" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="9 4 1.2 4" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Strichpunkt</span>
+              </button>
+            </div>
+            <select id="style-dash" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="solid" selected>Durchgezogen</option>
+              <option value="dashed">Gestrichelt</option>
+              <option value="dotted">Gepunktet</option>
+              <option value="dashdot">Strichpunkt</option>
+            </select>
+            <div id="layout-field" class="style-options" role="radiogroup" aria-label="Anordnung" data-for="style-layout" title="Anordnung der ausgehenden Linien.">
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="continue">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M18 16h10M28 16 40 8M28 16l12 8" fill="none" stroke="#0f766e" stroke-width="1.4" stroke-linecap="round" />
+                    <rect x="3" y="11" width="14" height="10" rx="2" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2" />
+                    <rect x="40" y="3" width="16" height="9" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.2" />
+                    <rect x="40" y="20" width="16" height="9" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.2" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Weiter</span>
+              </button>
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="around">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M32 13V7M32 19v6M26 16H14M38 16h12" fill="none" stroke="#0f766e" stroke-width="1.3" stroke-linecap="round" />
+                    <rect x="26" y="11" width="12" height="10" rx="2" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2" />
+                    <rect x="26" y="1" width="12" height="6" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <rect x="26" y="25" width="12" height="6" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <rect x="2" y="12" width="12" height="8" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <rect x="50" y="12" width="12" height="8" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Rundherum</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="horizontal">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M18 16h8M38 16h8" fill="none" stroke="#0f766e" stroke-width="1.4" stroke-linecap="round" />
+                    <rect x="26" y="10" width="12" height="12" rx="2" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2" />
+                    <rect x="3" y="11" width="15" height="10" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.2" />
+                    <rect x="46" y="11" width="15" height="10" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.2" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Links–Rechts</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="vertical">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <path d="M32 11V6M32 21v5" fill="none" stroke="#0f766e" stroke-width="1.4" stroke-linecap="round" />
+                    <rect x="24" y="11" width="16" height="10" rx="2" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2" />
+                    <rect x="22" y="1" width="20" height="5" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <rect x="22" y="26" width="20" height="5" rx="2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Oben–Unten</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="radial">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <g fill="none" stroke="#0f766e" stroke-width="1.3" stroke-linecap="round">
+                      <path d="M32 16 32 5" />
+                      <path d="M32 16 48 9" />
+                      <path d="M32 16 48 23" />
+                      <path d="M32 16 16 23" />
+                      <path d="M32 16 16 9" />
+                    </g>
+                    <circle cx="32" cy="16" r="4" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2" />
+                    <circle cx="32" cy="4" r="2.2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <circle cx="50" cy="8" r="2.2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <circle cx="50" cy="24" r="2.2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <circle cx="14" cy="24" r="2.2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                    <circle cx="14" cy="8" r="2.2" fill="#fff" stroke="#0f766e" stroke-width="1.1" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Gleichmäßig</span>
+              </button>
+            </div>
+            <select id="style-layout" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="continue">Weiter</option>
+              <option value="around" selected>Rundherum</option>
+              <option value="horizontal">Links–Rechts</option>
+              <option value="vertical">Oben–Unten</option>
+              <option value="radial">Gleichmäßig</option>
+            </select>
+            <label id="reach-field" class="style-slider" title="Abstand der ausgehenden Linien.">
+              <span>Länge</span>
+              <input id="style-reach" type="range" min="0" max="160" step="2" value="14" />
+            </label>
+            <label id="anchor-field" class="style-check" title="Ankerpunkte am gewählten Knoten anzeigen.">
+              <input id="show-anchors" type="checkbox" checked />
+              <span class="style-preview" aria-hidden="true">
+                <svg viewBox="0 0 64 32">
+                  <rect x="18" y="8" width="28" height="16" rx="3" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.3" />
+                  <circle cx="18" cy="16" r="2.2" fill="#0f766e" />
+                  <circle cx="46" cy="16" r="2.2" fill="#0f766e" />
+                  <circle cx="32" cy="8" r="2.2" fill="#0f766e" />
+                  <circle cx="32" cy="24" r="2.2" fill="#0f766e" />
+                </svg>
+              </span>
+              <span>Anker zeigen</span>
+            </label>
           </section>
           <section class="style-group">
             <h3 class="style-group-title">Knoten</h3>
-            <div class="styles">
-              <label>
-                Darstellung
-                <select id="style-nodes">
-                  <option value="mixed">Gemischt</option>
-                  <option value="filled">Fläche</option>
-                  <option value="outline">Rahmen</option>
-                  <option value="text">Nur Text</option>
-                </select>
-              </label>
-              <label title="Form des Knotenrahmens.">
-                Rahmen
-                <select id="style-shape">
-                  <option value="round">Abgerundet</option>
-                  <option value="rect">Rechteck</option>
-                  <option value="pill">Kapsel</option>
-                  <option value="ellipse">Ellipse</option>
-                  <option value="diamond">Raute</option>
-                </select>
-              </label>
+            <div class="style-options" role="radiogroup" aria-label="Darstellung" data-for="style-nodes">
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="mixed">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="4" y="8" width="26" height="16" rx="4" fill="#0f766e" />
+                    <rect x="34" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#0f766e" stroke-width="1.6" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Gemischt</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="filled">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="8" y="6" width="48" height="20" rx="5" fill="#0f766e" />
+                    <path d="M18 16h28" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Fläche</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="outline">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="8" y="6" width="48" height="20" rx="5" fill="#fff" stroke="#0f766e" stroke-width="1.7" />
+                    <path d="M18 16h28" stroke="#0f766e" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Rahmen</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="text">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <text x="32" y="21" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="14" font-weight="650" fill="#0f172a">Text</text>
+                  </svg>
+                </span>
+                <span class="style-option-label">Nur Text</span>
+              </button>
             </div>
+            <select id="style-nodes" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="mixed" selected>Gemischt</option>
+              <option value="filled">Fläche</option>
+              <option value="outline">Rahmen</option>
+              <option value="text">Nur Text</option>
+            </select>
+            <div class="style-options" role="radiogroup" aria-label="Rahmen" data-for="style-shape" title="Form des Knotenrahmens.">
+              <button type="button" class="style-option is-selected" role="radio" aria-checked="true" data-value="round">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="14" y="6" width="36" height="20" rx="5" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.5" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Abgerundet</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="rect">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="14" y="6" width="36" height="20" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.5" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Rechteck</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="pill">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <rect x="10" y="7" width="44" height="18" rx="9" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.5" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Kapsel</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="ellipse">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <ellipse cx="32" cy="16" rx="22" ry="11" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.5" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Ellipse</span>
+              </button>
+              <button type="button" class="style-option" role="radio" aria-checked="false" data-value="diamond">
+                <span class="style-preview" aria-hidden="true">
+                  <svg viewBox="0 0 64 32">
+                    <polygon points="32,3 54,16 32,29 10,16" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.5" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <span class="style-option-label">Raute</span>
+              </button>
+            </div>
+            <select id="style-shape" class="style-native" hidden aria-hidden="true" tabindex="-1">
+              <option value="round" selected>Abgerundet</option>
+              <option value="rect">Rechteck</option>
+              <option value="pill">Kapsel</option>
+              <option value="ellipse">Ellipse</option>
+              <option value="diamond">Raute</option>
+            </select>
           </section>
           <div class="style-actions">
             <button type="button" id="relayout" class="btn" title="Legt nur die ausgehenden Linien des ausgewählten Knotens neu an.">Anordnen</button>
@@ -262,23 +497,31 @@
       <div class="enchant-card" role="dialog" aria-modal="true" aria-labelledby="enchant-title">
         <h3 id="enchant-title">Illustration erzeugen</h3>
         <p class="enchant-lead">
-          Aus der aktuellen Mindmap wird ein ausgearbeitetes Bild. Die Karte im Editor bleibt unverändert.
+          Das Bildmodell gestaltet die Mindmap neu: Formen, Farben, Abstände und Linien.
+          Die Wörter sollen die der Karte bleiben. Die Karte im Editor ändert sich nicht.
           Das kann eine Minute dauern. Danach siehst du eine Vorschau und kannst das Bild speichern.
         </p>
         <fieldset class="enchant-options">
-          <legend>Wie soll der Hintergrund aussehen?</legend>
+          <legend>Wie soll das Bild entstehen?</legend>
           <label>
-            <input type="radio" name="enchant-bg" value="1" checked />
+            <input type="radio" name="enchant-mode" value="restyle-bg" checked />
             <span>
-              Mit Stimmung zum Thema
-              <span class="enchant-option-hint">Dezente Illustration hinter der Karte. Die Texte bleiben lesbar.</span>
+              Neu gestaltet, mit Stimmung
+              <span class="enchant-option-hint">Das Modell zeichnet die Karte neu und legt eine zum Thema passende Stimmung dahinter.</span>
             </span>
           </label>
           <label>
-            <input type="radio" name="enchant-bg" value="0" />
+            <input type="radio" name="enchant-mode" value="restyle-plain" />
             <span>
-              Nur die Karte
-              <span class="enchant-option-hint">Helle, ruhige Fläche ohne Szenerie.</span>
+              Neu gestaltet, klare Fläche
+              <span class="enchant-option-hint">Dieselbe Neugestaltung, ohne Szenerie, auf heller Fläche.</span>
+            </span>
+          </label>
+          <label>
+            <input type="radio" name="enchant-mode" value="exact" />
+            <span>
+              Exakt, zum Testen
+              <span class="enchant-option-hint">Wörter und Linien bleiben unverändert aus der Karte. Das Modell malt nur den Hintergrund.</span>
             </span>
           </label>
         </fieldset>
@@ -346,7 +589,7 @@
     <script src="js/layout.js?v=34"></script>
     <script src="js/collider.js?v=2"></script>
     <script src="js/shape.js?v=2"></script>
-    <script src="js/app.js?v=57"></script>
+    <script src="js/app.js?v=59"></script>
     <script src="js/chat.js?v=30"></script>
     <script src="js/gallery.js?v=28"></script>
   </body>

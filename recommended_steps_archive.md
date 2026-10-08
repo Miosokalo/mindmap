@@ -69,3 +69,18 @@
 - **Code:** `api/server.mjs`, `js/chat.js`, `css/app.css`, `index.html`, `schema/mindmap.ops.json`, `README.md`.
 - **Deploy:** Images `webstack-mindmap` und `webstack-mindmap-api` neu gebaut und gestartet.
 - **Manuell:** Neue Mindmap → Assistent „Mindmap zu X“ → prüfen, ob Farben und Kontrolle erscheinen; bei Popup Ja/Nein; Stil „links-rechts + gestrichelt“.
+
+
+## Scope Kinder + Icons/Image-Gen (2026-10-04)
+
+- **Erledigt:** Style-Bereich um „Auswahl + nächste Ebene“ (`children`). Icons am Knoten (`lucide:` / `gen:`), Lucide-Pack (~181) + Katalog im Repo, Style-Button **Icons (KI)**, Chat-Op `icon`/`auto`, API `GET/POST /api/icons*`, generierte PNGs unter `/data/icons` (Volume), Image-Gen via OpenRouter (`OPENROUTER_MODEL_IMAGE`).
+- **Code:** `js/app.js`, `js/chat.js`, `css/app.css`, `index.html`, `api/server.mjs`, `icons/*`, Schemas, Dockerfiles, `README.md`, `.env.example`.
+- **Deploy:** Images neu bauen/starten.
+- **Manuell:** Bereich „Auswahl + nächste Ebene“ → Farbe; **Icons (KI)**; Chat „setze Icons auf die Hauptäste“. Lucide-Assign live ok. Image-Gen braucht OpenRouter-Guthaben (aktuell 402 Insufficient credits) — danach wächst `/data/icons`.
+
+## Verzaubern-Button (2026-10-04)
+
+- **Erledigt:** Button **Verzaubern** in der Kopfleiste. Dialog: mit/ohne atmosphärischen Hintergrund. Client sendet Referenzbild (JPEG) + Hierarchie-Text an `POST /api/enchant`; OpenRouter-Bildmodell liefert Illustration; Vorschau + PNG-Download.
+- **Code:** `index.html`, `css/app.css`, `js/app.js`, `api/server.mjs`, `README.md`.
+- **Deploy:** Images neu bauen.
+- **Manuell:** Editor → Verzaubern → beide Hintergrund-Optionen; bei fehlendem OpenRouter-Guthaben klarer Fehlerhinweis.
